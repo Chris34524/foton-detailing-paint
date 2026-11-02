@@ -1,35 +1,41 @@
-import { useEffect, useState } from 'react'
-import api from './services/api'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import AuthProvider from './auth/AuthProvider'
+import ProtectedRoute from './auth/ProtectedRoute'
+import useAuth from './auth/useAuth'
+import LoginPage from './pages/LoginPage'
+import DashboardPage from './pages/DashboardPage'
 
-function App() {
-  const [status, setStatus] = useState('Checking API...')
-  const [error, setError] = useState(null)
+export function AppRoutes() {
+  const { isLoading, sessionError, refreshUser } = useAuth()
 
-  useEffect(() => {
-    api.get('/health')
-      .then((response) => {
-        setStatus(
-          `${response.data.status} - ${response.data.service}`
-        )
-      })
-      .catch((err) => {
-        setError(err.message)
-      })
-  }, [])
+  if (isLoading) return <main className="status-panel" role="status">Verificando sesión…</main>
+
+  if (sessionError) {
+    return (
+      <main className="status-panel">
+        <p role="alert">{sessionError}</p>
+        <button onClick={() => refreshUser().catch(() => {})}>Reintentar</button>
+      </main>
+    )
+  }
 
   return (
-    <main>
-      <h1>Foton Detailing & Paint</h1>
-
-      <h2>Backend connection</h2>
-
-      {error ? (
-        <p>API Error: {error}</p>
-      ) : (
-        <p>API Status: {status}</p>
-      )}
-    </main>
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route element={<ProtectedRoute />}>
+        <Route path="/dashboard" element={<DashboardPage />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
   )
 }
 
-export default App
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </BrowserRouter>
+  )
+}
