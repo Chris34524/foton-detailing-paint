@@ -118,3 +118,20 @@ textarea { font: inherit; width: 100%; resize: vertical; border: 1px solid #acb8
   .vin-lookup > div { max-width: none; flex-basis: 100%; }
   .pagination { justify-content: center; }
 }
+
+.module-navigation { display: flex; gap: 1.5rem; padding: 1rem 0; margin-bottom: 1rem; border-bottom: 1px solid #dde3ec; }
+.module-navigation .active { font-weight: 700; color: #153f79; }
+.work-order-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 1rem; }
+.work-order-filters > div { flex: 1 1 180px; }
+.work-order-filters label, .work-order-actions label, .work-order-generation label { display: block; margin: .75rem 0 .35rem; }
+.work-order-filters .primary-button, .work-order-actions .primary-button { margin-top: .75rem; }
+.queue-shortcuts { justify-content: start; margin: 1rem 0 1.5rem; flex-wrap: wrap; }
+.work-order-actions { display: grid; gap: 1.5rem; padding: 1.5rem 0; border-top: 1px solid #dde3ec; }
+.work-order-actions form { max-width: 650px; }
+.work-order-actions > [role=alert] { grid-column: 1 / -1; }
+.work-order-generation { border: 1px solid #cbdced; border-radius: .75rem; padding: 1rem; margin: 1rem 0; }
+.work-order-generation form { max-width: 650px; }
+.source-diagnosis { border-top: 1px solid #dde3ec; margin-top: 1.5rem; padding-top: 1.5rem; }
+.status-badge[data-status=blocked] { background: #fff4e6; color: #8e3a12; }
+.status-badge[data-status=completed] { background: #ecf9f0; color: #17603a; }
+.status-badge[data-status=cancelled] { background: #eee; color: #526278; }

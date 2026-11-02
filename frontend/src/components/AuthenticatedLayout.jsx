@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import useAuth from '../auth/useAuth'
+import { workOrderPermissions } from '../workOrders/permissions'
 import { unitPermissions } from '../units/permissions'
 import { diagnosisPermissions } from '../diagnosis/permissions'
 
@@ -21,6 +22,7 @@ export default function AuthenticatedLayout() {
       <nav aria-label="Navegación principal">
         <NavLink to="/dashboard">Dashboard</NavLink>
         {can(unitPermissions.view) && <NavLink to="/units">Unidades</NavLink>}
+        {can(workOrderPermissions.view) && <NavLink to="/work-orders">Trabajos</NavLink>}
         {can(diagnosisPermissions.view) && <NavLink to="/diagnoses">Diagnóstico</NavLink>}
       </nav>
       <button onClick={handleLogout} disabled={isLoggingOut}>
