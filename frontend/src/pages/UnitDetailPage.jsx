@@ -6,6 +6,7 @@ import { unitPermissions } from '../units/permissions'
 import { formatUnitDate, unitErrorMessage } from '../units/unitErrors'
 import UnitStatusBadge from '../units/UnitStatusBadge'
 import UnitEditForm from '../units/UnitEditForm'
+import { diagnosisPermissions } from '../diagnosis/permissions'
 
 export default function UnitDetailPage() {
   const { unitId } = useParams()
@@ -41,6 +42,13 @@ export default function UnitDetailPage() {
       <div><dt>Última actualización</dt><dd>{formatUnitDate(unit.updated_at)}</dd></div>
       <div><dt>Registrado por</dt><dd>{unit.registered_by?.name || 'Usuario no disponible'}</dd></div>
     </dl>
+    {(can(diagnosisPermissions.view) || can(diagnosisPermissions.create)) && <section className="unit-edit">
+      <h2>Diagnóstico</h2>
+      <div className="form-actions diagnosis-actions">
+        {can(diagnosisPermissions.view) && <Link to={'/units/' + unit.id + '/diagnoses'}>Ver diagnósticos</Link>}
+        {can(diagnosisPermissions.create) && <Link className="button-link" to={'/units/' + unit.id + '/diagnoses/new'}>Nuevo diagnóstico</Link>}
+      </div>
+    </section>}
     {can(unitPermissions.update)
       ? <UnitEditForm key={unit.id} unit={unit} statuses={statuses} onSaved={(updated) => setResult((current) => ({ ...current, unit: updated }))} />
       : <p className="muted">Consulta de solo lectura.</p>}

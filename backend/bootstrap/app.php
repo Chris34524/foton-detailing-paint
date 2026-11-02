@@ -1,12 +1,18 @@
 <?php
 
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -25,6 +31,20 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->render(function (Throwable $error, Request $request): ?JsonResponse {
+            if (! $request->is('api/*') || $error instanceof AuthenticationException
+                || $error instanceof ValidationException || $error instanceof HttpResponseException) {
+                return null;
+            }
+
+            $status = $error instanceof HttpExceptionInterface ? $error->getStatusCode() : 500;
+
+            return response()->json(
+                ['message' => Response::$statusTexts[$status] ?? 'Request failed.'],
+                $status,
+                $error instanceof HttpExceptionInterface ? $error->getHeaders() : [],
+            );
+        });
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );

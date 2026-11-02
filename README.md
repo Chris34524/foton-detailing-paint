@@ -55,9 +55,9 @@ Spatie Permission uses the `web` guard, with centralized `App\Enums\Role` and `A
 | --- | --- |
 | `super_admin` | Every defined application permission through a centralized Gate bypass |
 | `admin` | All application permissions |
-| `supervisor` | Operational oversight, work order creation/update/assignment, dashboard, and audit |
+| `supervisor` | Operational oversight, diagnosis creation/editing/catalog governance, work order creation/update/assignment, dashboard, and audit |
 | `operator` | Unit/work order viewing, time tracking, materials consumption, traceability, and training |
-| `inspector` | Inspection execution, release, diagnosis/unit viewing, traceability, and dashboard |
+| `inspector` | Diagnosis creation/editing, inspection execution, release, unit viewing, traceability, and dashboard; no catalog administration |
 
 The permission catalog uses `module.action` names across units, diagnosis, work orders, processes, time tracking, materials, inspection, release, traceability, training, dashboard, audit, and users. The seeder is the source of truth for role assignments. Middleware aliases `role`, `permission`, and `role_or_permission` are available.
 
@@ -89,6 +89,57 @@ List filters are `search`, `vin`, `model`, `status`, and `location`. VIN/model/s
 `UnitStatus` defines `registered`, `in_diagnosis`, `in_process`, `inspection`, `rework`, `ready_for_release`, `released`, and `blocked`. React obtains labels/options from the meta endpoint and resource rather than maintaining an independent status list. Any valid status can be selected in this phase; transition rules, status/location history, and plant catalogs are deferred.
 
 The authenticated navigation provides Dashboard, Unidades, and logout. `/units` and `/units/:unitId` require `units.view`; `/units/new` requires `units.create`. The list supports direct VIN lookup, explicit filter application reflected in URL parameters, and server pagination. Detail editing requires `units.update`; viewers receive read-only details. Existing role-permission baselines are unchanged, so normal registration/edit access belongs to admin and Super Admin unless permissions are explicitly assigned separately. Frontend checks support UX; the API always enforces policies and CSRF protection.
+
+## Diagnosis
+
+Phase 4 adds `Diagnosis`, `Defect`, `DefectType`, and `DefectEvidence`. A unit can have multiple diagnoses; a diagnosis contains defects, each referencing a catalog type and optional private image evidence. Four new migrations preserve core history with restrictive foreign keys; removed user accounts leave nullable actor references. There are no delete endpoints, soft deletes, workflow assignments, or repair fields.
+
+When upgrading an existing Phase 3 installation, rebuild the PHP services for GD/image support and upload limits, apply migrations, and run the authorization seeder:
+
+```bash
+docker compose up -d --build
+docker compose exec nginx nginx -s reload
+docker compose exec backend php artisan migrate
+docker compose exec backend php artisan db:seed
+```
+
+The seeder updates permissions only; it does not invent a production defect catalog, diagnoses, or defects. Configure the first active type through the catalog UI before recording a defect. An empty catalog provides an explicit configuration action for managers; searching types only finds existing active entries. Catalog administration returns to the diagnosis that opened it.
+
+Diagnosis notes are optional plain text, trimmed, up to 5,000 characters. Defects require an active type, a trimmed physical vehicle location (160 characters), and an explicit `DefectPriority`: `low` / Baja, `medium` / Media, `high` / Alta, or `critical` / Crítica. Optional descriptions allow 5,000 plain-text characters. HTML is rejected. Defect location identifies the damaged vehicle area; `Unit.current_location` remains the vehicle's operational location. Neither diagnosis creation nor priority changes alter the Unit status or create Work Orders.
+
+Catalog names are trimmed, unique, and limited to 120 characters; descriptions allow 2,000 characters. Types can be renamed, activated, or deactivated, but not deleted. Inactive types remain readable on existing defects. An existing defect can retain its current inactive type while its other fields are edited; inactive types cannot be newly assigned. Priority options come from the backend meta endpoint, not a separate React enum.
+
+| API endpoint | Authorization |
+| --- | --- |
+| `GET /api/diagnoses` and `GET /api/diagnoses/{diagnosis}` | `diagnosis.view` |
+| `GET /api/units/{unit}/diagnoses` | `diagnosis.view` plus access to the Unit context |
+| `POST /api/units/{unit}/diagnoses` | `diagnosis.create` plus access to the Unit context |
+| `PATCH /api/diagnoses/{diagnosis}` | `diagnosis.update` |
+| `POST /api/diagnoses/{diagnosis}/defects` | `diagnosis.update` |
+| `PATCH /api/diagnoses/{diagnosis}/defects/{defect}` | `diagnosis.update` |
+| `GET /api/diagnosis/meta` | `diagnosis.view` |
+| `GET /api/defect-types` | `diagnosis.view`; active types by default |
+| `POST /api/defect-types` and `PATCH /api/defect-types/{defectType}` | `diagnosis.manage_catalog` |
+| `POST /api/diagnoses/{diagnosis}/defects/{defect}/evidences` | `diagnosis.update` |
+| `GET /api/diagnoses/{diagnosis}/defects/{defect}/evidences/{evidence}` | `diagnosis.view` |
+
+All routes require `auth:sanctum`; writes retain the existing SPA CSRF protection. Nested bindings reject mismatched Diagnosis/Defect/Evidence combinations with 404. Actor IDs, parent IDs, disk names, and storage paths are assigned by the server rather than client mass assignment. API errors omit internal paths and debug traces while retaining authentication and validation responses.
+
+Diagnosis and unit-history lists use Laravel pagination (default 20, maximum 100), `search` across VIN/model/notes, optional `unit_id`, `page`, and allowlisted `sort` (`created_at`, `updated_at`, `id`) / `direction`. Sorting has deterministic ID ties. Catalog lists are bounded (default/maximum 100), support name search and pagination, and expose inactive entries with `include_inactive=1` only to catalog managers. Operational defect forms offer catalog search when more types exist than fit in the current options.
+
+The centralized permission catalog adds only `diagnosis.manage_catalog`. Admin receives all defined permissions and Super Admin continues through the central Gate bypass. Supervisor receives all four Diagnosis permissions; Inspector receives view/create/update, without catalog management. Operator's Diagnosis baseline is unchanged. After an upgrade, reload the SPA to obtain its current effective permission payload.
+
+### Private evidence
+
+`DIAGNOSIS_EVIDENCE_DISK=diagnosis_evidence` selects the dedicated private Laravel disk. Its default root is `storage/app/diagnosis-evidence`, outside the web root and the publicly served storage disk, with public serving disabled. Alternative disks must remain private and must not expose a public serving URL. Misconfigured public or web-served disks fail closed. Back up database metadata and evidence files together; do not move the evidence directory under `public` or add a public storage link to it.
+
+Uploads accept multipart `files[]`: 1–5 JPEG/PNG/WEBP images, maximum 10 MiB per image. Extension, detected MIME, and image content are validated. SVG, PDF, scripts, executables, and disguised non-image content are rejected. The server uses random UUID filenames with content-derived extensions and records a sanitized original name only as metadata. A database transaction and explicit file cleanup prevent new orphan files after a failed or partial batch.
+
+PHP accepts up to 52 MiB per request and Nginx enforces the matching body limit. PHP's file-count ceiling remains above five so Laravel can reject oversized batches instead of receiving a silently truncated list. The API enforces the actual five-file limit. Oversized requests receive friendly client feedback.
+
+Evidence resources expose metadata, safe uploader ID/name, and an authenticated API view URL; they never expose `disk`, `path`, or host filesystem paths. Retrieval streams the image with inline disposition, private/no-store caching, and nosniff headers. React requests authenticated blobs, creates temporary object URLs, and revokes them when they are no longer displayed. No public filesystem URL is used, and no evidence deletion/replacement workflow is added.
+
+The SPA adds `/diagnoses`, `/diagnoses/:diagnosisId`, `/units/:unitId/diagnoses`, `/units/:unitId/diagnoses/new`, and `/diagnosis/defect-types`. Unit detail links into Diagnosis without changing Unit editing. View-only users receive read-only content; catalog controls require catalog permission. Work Orders, repair execution, inspection/release approvals, status/location history, KPIs, and SSO LDRH remain outside this phase.
 
 ## Validation
 

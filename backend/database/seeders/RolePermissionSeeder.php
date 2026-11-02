@@ -37,6 +37,9 @@ class RolePermissionSeeder extends Seeder
             Role::Supervisor => [
                 Permission::UnitsView,
                 Permission::DiagnosisView,
+                Permission::DiagnosisCreate,
+                Permission::DiagnosisUpdate,
+                Permission::DiagnosisManageCatalog,
                 Permission::WorkOrdersView,
                 Permission::WorkOrdersCreate,
                 Permission::WorkOrdersUpdate,
@@ -62,6 +65,8 @@ class RolePermissionSeeder extends Seeder
             Role::Inspector => [
                 Permission::UnitsView,
                 Permission::DiagnosisView,
+                Permission::DiagnosisCreate,
+                Permission::DiagnosisUpdate,
                 Permission::InspectionView,
                 Permission::InspectionExecute,
                 Permission::ReleaseExecute,

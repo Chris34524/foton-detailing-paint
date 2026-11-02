@@ -10,6 +10,7 @@ enum Permission: string
     case DiagnosisView = 'diagnosis.view';
     case DiagnosisCreate = 'diagnosis.create';
     case DiagnosisUpdate = 'diagnosis.update';
+    case DiagnosisManageCatalog = 'diagnosis.manage_catalog';
     case WorkOrdersView = 'work_orders.view';
     case WorkOrdersCreate = 'work_orders.create';
     case WorkOrdersUpdate = 'work_orders.update';
