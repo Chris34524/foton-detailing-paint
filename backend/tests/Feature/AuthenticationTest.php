@@ -126,7 +126,7 @@ class AuthenticationTest extends TestCase
         $this->getJson('/api/auth/me')->assertOk()->assertJsonPath('user.email', $user->email)
             ->assertJsonPath('user.roles', [Role::Inspector->value])
             ->assertJsonFragment(['permissions' => [
-                'dashboard.view', 'diagnosis.view', 'inspection.execute', 'inspection.view',
+                'dashboard.view', 'diagnosis.create', 'diagnosis.update', 'diagnosis.view', 'inspection.execute', 'inspection.view',
                 'release.execute', 'traceability.view', 'units.view', 'users.view',
             ]]);
     }

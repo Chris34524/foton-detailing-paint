@@ -35,7 +35,7 @@ class AuthorizationTest extends TestCase
             ['super_admin', 'admin', 'supervisor', 'operator', 'inspector'],
             RoleModel::query()->pluck('name')->all(),
         );
-        $this->assertDatabaseCount('permissions', 28);
+        $this->assertDatabaseCount('permissions', count(Permission::cases()));
 
         foreach (Permission::cases() as $permission) {
             $this->assertDatabaseHas('permissions', ['name' => $permission->value, 'guard_name' => 'web']);
@@ -54,7 +54,7 @@ class AuthorizationTest extends TestCase
         $this->seed(DatabaseSeeder::class);
 
         $this->assertDatabaseCount('roles', 5);
-        $this->assertDatabaseCount('permissions', 28);
+        $this->assertDatabaseCount('permissions', count(Permission::cases()));
         $this->assertDatabaseCount('users', 1);
         $this->assertDatabaseCount('model_has_roles', 1);
         $this->assertSame($passwordHash, $developer->fresh()->password);
@@ -99,7 +99,7 @@ class AuthorizationTest extends TestCase
 
         $this->assertDatabaseCount('users', 0);
         $this->assertDatabaseCount('roles', 5);
-        $this->assertDatabaseCount('permissions', 28);
+        $this->assertDatabaseCount('permissions', count(Permission::cases()));
 
         $developer = User::factory()->create(['email' => 'developer@foton-detailing.local']);
         $this->artisan('db:seed', ['--class' => DatabaseSeeder::class, '--force' => true])->assertExitCode(0);
@@ -126,6 +126,7 @@ class AuthorizationTest extends TestCase
         return [
             'supervisor' => [Role::Supervisor, [
                 Permission::UnitsView, Permission::DiagnosisView, Permission::WorkOrdersView,
+                Permission::DiagnosisCreate, Permission::DiagnosisUpdate, Permission::DiagnosisManageCatalog,
                 Permission::WorkOrdersCreate, Permission::WorkOrdersUpdate, Permission::WorkOrdersAssign,
                 Permission::ProcessesView, Permission::TimeTrackingView, Permission::MaterialsView,
                 Permission::InspectionView, Permission::TraceabilityView, Permission::TrainingView,
@@ -135,12 +136,14 @@ class AuthorizationTest extends TestCase
                 Permission::UnitsView, Permission::WorkOrdersView, Permission::TimeTrackingUse,
                 Permission::MaterialsView, Permission::MaterialsConsume, Permission::TraceabilityView,
                 Permission::TrainingView,
-            ], [Permission::UsersManage, Permission::ReleaseExecute, Permission::WorkOrdersAssign]],
+            ], [Permission::UsersManage, Permission::ReleaseExecute, Permission::WorkOrdersAssign,
+                Permission::DiagnosisView, Permission::DiagnosisCreate, Permission::DiagnosisUpdate, Permission::DiagnosisManageCatalog]],
             'inspector' => [Role::Inspector, [
                 Permission::UnitsView, Permission::DiagnosisView, Permission::InspectionView,
+                Permission::DiagnosisCreate, Permission::DiagnosisUpdate,
                 Permission::InspectionExecute, Permission::ReleaseExecute, Permission::TraceabilityView,
                 Permission::DashboardView,
-            ], [Permission::UsersManage, Permission::MaterialsManage, Permission::WorkOrdersAssign]],
+            ], [Permission::UsersManage, Permission::MaterialsManage, Permission::WorkOrdersAssign, Permission::DiagnosisManageCatalog]],
         ];
     }
 
