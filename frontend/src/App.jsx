@@ -10,6 +10,11 @@ import UnitsPage from './pages/UnitsPage'
 import UnitCreatePage from './pages/UnitCreatePage'
 import UnitDetailPage from './pages/UnitDetailPage'
 import { unitPermissions } from './units/permissions'
+import { diagnosisPermissions } from './diagnosis/permissions'
+import DiagnosesPage from './pages/DiagnosesPage'
+import DiagnosisCreatePage from './pages/DiagnosisCreatePage'
+import DiagnosisDetailPage from './pages/DiagnosisDetailPage'
+import DefectTypesPage from './pages/DefectTypesPage'
 
 export function AppRoutes() {
   const { isLoading, sessionError, refreshUser } = useAuth()
@@ -37,6 +42,17 @@ export function AppRoutes() {
           </Route>
           <Route element={<PermissionRoute permission={unitPermissions.create} />}>
             <Route path="/units/new" element={<UnitCreatePage />} />
+          </Route>
+          <Route element={<PermissionRoute permission={diagnosisPermissions.view} />}>
+            <Route path="/diagnoses" element={<DiagnosesPage />} />
+            <Route path="/diagnoses/:diagnosisId" element={<DiagnosisDetailPage />} />
+            <Route path="/units/:unitId/diagnoses" element={<DiagnosesPage />} />
+          </Route>
+          <Route element={<PermissionRoute permission={diagnosisPermissions.create} />}>
+            <Route path="/units/:unitId/diagnoses/new" element={<DiagnosisCreatePage />} />
+          </Route>
+          <Route element={<PermissionRoute permission={diagnosisPermissions.manageCatalog} />}>
+            <Route path="/diagnosis/defect-types" element={<DefectTypesPage />} />
           </Route>
         </Route>
       </Route>
