@@ -52,7 +52,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: pdo_mysql, bcmath, intl, zip
+          extensions: pdo_mysql, pdo_sqlite, bcmath, intl, zip
           coverage: none
 
       - name: Install Composer dependencies
@@ -64,7 +64,12 @@ jobs:
           php artisan key:generate
 
       - name: Run migrations
-        run: php artisan migrate --force
+        run: |
+          php artisan migrate --force
+          php artisan migrate:status
+
+      - name: Check PHP formatting
+        run: vendor/bin/pint --test
 
       - name: Run backend tests
         run: php artisan test
@@ -93,6 +98,9 @@ jobs:
 
       - name: Run ESLint
         run: npm run lint
+
+      - name: Run frontend tests
+        run: npm run test -- --run
 
       - name: Build frontend
         run: npm run build
