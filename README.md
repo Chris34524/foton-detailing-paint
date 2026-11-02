@@ -63,7 +63,32 @@ The permission catalog uses `module.action` names across units, diagnosis, work 
 
 `UserPolicy` provides the reference pattern: read operations require `users.view`, and management operations require `users.manage`. Future module policies should use the centralized permission enum and Laravel Gate checks. No domain tables or user-management endpoints are added for this foundation. Published package migrations provide Sanctum and Spatie tables; existing Laravel session tables hold cookie sessions.
 
-SSO integration with LDRH Sys remains pending by product decision. No LDRH routes, adapters, or dependencies are included. Password reset, account provisioning screens, and business module screens belong to later work.
+SSO integration with LDRH Sys remains pending by product decision. No LDRH routes, adapters, or dependencies are included. Password reset, account provisioning screens, and the remaining operational modules belong to later work.
+
+## Units
+
+Phase 3 adds the canonical `App\Models\Unit` model and one `units` table. Run the normal migrations when upgrading an existing checkout; no fake units are seeded. VIN has a unique database index, status/location/model have indexes for filters, and the nullable registering-user foreign key uses `nullOnDelete` so the unit survives user removal.
+
+VIN is trimmed and uppercased consistently on registration, model writes, lookup, and exact VIN filtering. It must contain exactly 17 letters/digits excluding I, O, and Q; internal characters are never removed. VIN cannot be changed after registration. Duplicate submissions, including a database uniqueness race, return a VIN validation error with HTTP 422. The server assigns the creator and initial `registered` status; clients cannot supply either. Optional model and location values are trimmed and may be cleared with null/blank input.
+
+All endpoints require Sanctum authentication and `UnitPolicy` authorization using the existing Phase 2 permissions:
+
+| Method and endpoint | Permission | Behavior |
+| --- | --- | --- |
+| `GET /api/units` | `units.view` | Paginated resource collection with `data`, `links`, and `meta` |
+| `POST /api/units` | `units.create` | Register a unit; returns HTTP 201 and `data` |
+| `GET /api/units/meta` | `units.view` | Authoritative status values and Spanish labels |
+| `GET /api/units/by-vin/{vin}` | `units.view` | Canonical VIN lookup; invalid VIN 422, unknown VIN 404 |
+| `GET /api/units/{unit}` | `units.view` | Unit detail; missing ID 404 |
+| `PATCH /api/units/{unit}` | `units.update` | Update model, status, and/or current location |
+
+The API resource exposes VIN, model, status/label, current location, timestamps, and only the registering user's ID/name. Empty updates and any submitted VIN/creator update are rejected with 422. There is no delete endpoint or soft-delete workflow.
+
+List filters are `search`, `vin`, `model`, `status`, and `location`. VIN/model/status/location match exactly; `search` performs a substring search across VIN, model, and location, combined with the other filters. `per_page` defaults to 20 and must be 1–100. `page` must be positive. Sorting accepts only `vin`, `model`, `status`, `current_location`, `created_at`, or `updated_at`, with `asc`/`desc` direction. The default is `created_at DESC, id DESC`; other sorts also use ID to break ties. Invalid query values return 422.
+
+`UnitStatus` defines `registered`, `in_diagnosis`, `in_process`, `inspection`, `rework`, `ready_for_release`, `released`, and `blocked`. React obtains labels/options from the meta endpoint and resource rather than maintaining an independent status list. Any valid status can be selected in this phase; transition rules, status/location history, and plant catalogs are deferred.
+
+The authenticated navigation provides Dashboard, Unidades, and logout. `/units` and `/units/:unitId` require `units.view`; `/units/new` requires `units.create`. The list supports direct VIN lookup, explicit filter application reflected in URL parameters, and server pagination. Detail editing requires `units.update`; viewers receive read-only details. Existing role-permission baselines are unchanged, so normal registration/edit access belongs to admin and Super Admin unless permissions are explicitly assigned separately. Frontend checks support UX; the API always enforces policies and CSRF protection.
 
 ## Validation
 

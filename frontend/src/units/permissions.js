@@ -1,0 +1,1 @@
+export const unitPermissions = { view: 'units.view', create: 'units.create', update: 'units.update' }
