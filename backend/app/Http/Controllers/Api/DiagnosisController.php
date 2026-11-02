@@ -19,7 +19,7 @@ class DiagnosisController extends Controller
     private function detail(Diagnosis $diagnosis): Diagnosis
     {
         return $diagnosis->load(['unit', 'diagnosedBy', 'defects.defectType', 'defects.createdBy',
-            'defects.evidences.uploadedBy', 'defects.evidences.defect'])->loadCount('defects');
+            'defects.evidences.uploadedBy', 'defects.evidences.defect', 'workOrder'])->loadCount('defects');
     }
 
     public function index(DiagnosisIndexRequest $request, ?Unit $unit = null): AnonymousResourceCollection
