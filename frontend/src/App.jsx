@@ -32,7 +32,7 @@ import { workOrderPermissions } from './workOrders/permissions'
 export function AppRoutes() {
   const { isLoading, sessionError, refreshUser } = useAuth()
 
-  if (isLoading) return <main className="status-panel" role="status">Verificando sesión…</main>
+  if (isLoading) return <main className="status-panel" role="status"><span className="loading-spinner" aria-hidden="true" />Verificando sesión…</main>
 
   if (sessionError) {
     return (

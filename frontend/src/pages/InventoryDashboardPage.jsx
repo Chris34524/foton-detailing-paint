@@ -26,7 +26,7 @@ export default function InventoryDashboardPage() {
         {resource.data.meta.stock_statuses.map((status) => <article key={status.value} data-stock-status={status.value}><span>{status.label}</span><strong>{resource.data.dashboard.indicators[status.value] || 0}</strong></article>)}
       </div>
       <h2>Alertas y acciones recomendadas</h2>
-      {resource.data.dashboard.alerts.data.length === 0 ? <p className="empty-state">No hay alertas de inventario.</p> : <div className="table-scroll"><table>
+      {resource.data.dashboard.alerts.data.length === 0 ? <p className="empty-state">No hay alertas de inventario.</p> : <div className="table-scroll" tabIndex={0} role="region" aria-label="Tabla de registros"><table>
         <caption className="sr-only">Alertas de inventario</caption><thead><tr><th>Código</th><th>Componente</th><th>Ubicación</th><th>Stock actual</th><th>Mínimo</th><th>Máximo</th><th>Estado</th><th>Acción recomendada</th></tr></thead>
         <tbody>{resource.data.dashboard.alerts.data.map((material) => <tr key={material.id}>
           <td>{material.code}</td><td><Link to={'/materials/movements?material_id=' + material.id}>{material.name}</Link></td><td>{material.location || '—'}</td>

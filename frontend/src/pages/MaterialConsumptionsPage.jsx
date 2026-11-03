@@ -1,9 +1,10 @@
 import { useCallback } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import useData from '../diagnosis/useDiagnosisData'
 import Pagination from '../diagnosis/Pagination'
 import operationsService from '../operations/operationsService'
 import { LoadState } from '../operations/Feedback'
+import InventoryNavigation from '../operations/InventoryNavigation'
 import ConsumptionTable from '../operations/ConsumptionTable'
 export default function MaterialConsumptionsPage() {
   const [params, setParams] = useSearchParams()
@@ -17,7 +18,7 @@ export default function MaterialConsumptionsPage() {
     for (const [key, value] of fields) if (value.trim()) next.set(key, value.trim())
     setParams(next)
   }
-  return <section className="workspace-card"><Link to="/materials">← Materiales</Link><h1>Consumos de materiales</h1>
+  return <section className="workspace-card"><p className="eyebrow">MATERIALES</p><h1>Consumos de materiales</h1><p className="muted page-description">Consulta los materiales utilizados en cada orden y unidad.</p><InventoryNavigation />
     <form key={query} className="diagnosis-search" onSubmit={search}>
       <div><label htmlFor="consumption-vin">VIN exacto</label><input id="consumption-vin" name="vin" maxLength={17} defaultValue={params.get('vin') || ''} /></div>
       <div><label htmlFor="consumption-search">Buscar consumos</label><input id="consumption-search" name="search" maxLength={255} defaultValue={params.get('search') || ''} /></div>

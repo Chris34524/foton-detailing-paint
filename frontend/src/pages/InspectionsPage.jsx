@@ -24,10 +24,10 @@ export default function InspectionsPage() {
       <button>Buscar</button><button type="button" onClick={() => setParams({})}>Limpiar búsqueda</button>
     </form>
     <LoadState resource={resource}>{resource.data && <>
-      {resource.data.data.length === 0 ? <p className="empty-state">No hay inspecciones para mostrar.</p> : <div className="table-scroll"><table>
+      {resource.data.data.length === 0 ? <p className="empty-state">No hay inspecciones para mostrar.</p> : <div className="table-scroll" tabIndex={0} role="region" aria-label="Tabla de registros"><table>
         <caption className="sr-only">Listado de inspecciones</caption><thead><tr><th>ID</th><th>VIN</th><th>Orden</th><th>Checklist</th><th>Estado / Resultado</th><th>Inspector</th><th>Fecha</th><th>Detalle</th></tr></thead>
         <tbody>{resource.data.data.map((inspection) => <tr key={inspection.id}><td>{inspection.id}</td><td className="vin-value">{inspection.unit.vin}</td><td>#{inspection.work_order_id}</td>
-          <td>{inspection.checklist.name}</td><td>{inspection.result_label || inspection.status_label}</td><td>{inspection.inspected_by?.name || 'Usuario no disponible'}</td>
+          <td>{inspection.checklist.name}</td><td><span className="status-badge" data-status={inspection.result || inspection.status}>{inspection.result_label || inspection.status_label}</span></td><td>{inspection.inspected_by?.name || 'Usuario no disponible'}</td>
           <td>{formatUnitDate(inspection.created_at)}</td><td><Link to={'/inspections/' + inspection.id} aria-label={'Ver inspección ' + inspection.id}>Ver detalle</Link></td>
         </tr>)}</tbody></table></div>}
       <Pagination meta={resource.data.meta} label="Paginación de inspecciones" onPage={(page) => { const next = new URLSearchParams(params); next.set('page', page); setParams(next) }} />

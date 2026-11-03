@@ -45,6 +45,27 @@ beforeEach(() => {
 })
 
 describe('session authentication', () => {
+  it('reveals and hides the password without changing its value or submitting', async () => {
+    renderApp()
+    const clicker = userEvent.setup()
+    const password = await screen.findByLabelText('Contraseña')
+    await clicker.type(password, 'example-password')
+    await clicker.click(screen.getByRole('button', { name: 'Mostrar contraseña' }))
+    expect(password).toHaveAttribute('type', 'text')
+    expect(password).toHaveValue('example-password')
+    expect(screen.getByRole('button', { name: 'Ocultar contraseña' })).toHaveAttribute('aria-pressed', 'true')
+    await clicker.click(screen.getByRole('button', { name: 'Ocultar contraseña' }))
+    expect(password).toHaveAttribute('type', 'password')
+    expect(authService.login).not.toHaveBeenCalled()
+  })
+
+  it('focuses the login error so keyboard users can recover', async () => {
+    authService.login.mockRejectedValue(httpError(401))
+    renderApp()
+    await submitLogin()
+    expect(await screen.findByRole('alert')).toHaveFocus()
+  })
+
   it('renders the login form after determining that the browser is a guest', async () => {
     renderApp()
     expect(await screen.findByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument()
@@ -57,7 +78,7 @@ describe('session authentication', () => {
     renderApp()
     await submitLogin()
     expect(await screen.findByRole('heading', { name: 'Bienvenido, Development User' })).toBeInTheDocument()
-    expect(screen.getByText('operator')).toBeInTheDocument()
+    expect(screen.getByText('Operador')).toBeInTheDocument()
     expect(authService.login).toHaveBeenCalledWith({ email: currentUser.email, password: 'example-password' })
   })
 

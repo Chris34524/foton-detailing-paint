@@ -46,7 +46,7 @@ export default function InventoryMovementsPage() {
     {canAny([permissions.materialsManage, permissions.materialsConsume]) && <Link className="button-link" to={'/materials/movements/new' + (materialId ? '?material_id=' + materialId : '')}>Registrar movimiento</Link>}</div>
     <InventoryNavigation /><LoadState resource={resource}>{resource.data && <>
       <Filters key={query} params={params} material={resource.data.material} meta={resource.data.meta} onSearch={setParams} onClear={() => setParams({})} />
-      {resource.data.collection.data.length === 0 ? <p className="empty-state">No hay movimientos para mostrar.</p> : <div className="table-scroll"><table>
+      {resource.data.collection.data.length === 0 ? <p className="empty-state">No hay movimientos para mostrar.</p> : <div className="table-scroll" tabIndex={0} role="region" aria-label="Tabla de registros"><table>
         <caption className="sr-only">Historial de movimientos</caption><thead><tr><th>Fecha</th><th>Folio</th><th>Código</th><th>Componente</th><th>Tipo</th><th>Cantidad</th><th>Unidad movimiento</th><th>Cantidad equivalente</th><th>Responsable</th><th>Área / destino</th><th>Observaciones</th></tr></thead>
         <tbody>{resource.data.collection.data.map((movement) => <tr key={movement.id}>
           <td>{formatUnitDate(movement.occurred_at)}</td><td><Link to={'/materials/movements/' + movement.id}>{movement.folio}</Link></td>
