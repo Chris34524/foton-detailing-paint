@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import useAuth from '../auth/useAuth'
 import { workOrderPermissions } from '../workOrders/permissions'
+import { operationsPermissions } from '../operations/permissions'
 import { unitPermissions } from '../units/permissions'
 import { diagnosisPermissions } from '../diagnosis/permissions'
 
@@ -22,6 +23,9 @@ export default function AuthenticatedLayout() {
       <nav aria-label="Navegación principal">
         <NavLink to="/dashboard">Dashboard</NavLink>
         {can(unitPermissions.view) && <NavLink to="/units">Unidades</NavLink>}
+        {can(operationsPermissions.processesView) && <NavLink to="/processes">Procesos</NavLink>}
+        {can(operationsPermissions.materialsView) && <NavLink to="/materials">Materiales</NavLink>}
+        {can(operationsPermissions.inspectionView) && <NavLink to="/inspections">Inspección</NavLink>}
         {can(workOrderPermissions.view) && <NavLink to="/work-orders">Trabajos</NavLink>}
         {can(diagnosisPermissions.view) && <NavLink to="/diagnoses">Diagnóstico</NavLink>}
       </nav>

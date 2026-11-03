@@ -16,6 +16,12 @@ import DiagnosisCreatePage from './pages/DiagnosisCreatePage'
 import DiagnosisDetailPage from './pages/DiagnosisDetailPage'
 import DefectTypesPage from './pages/DefectTypesPage'
 import WorkOrdersPage from './pages/WorkOrdersPage'
+import OperationsCatalogPage from './pages/OperationsCatalogPage'
+import MaterialConsumptionsPage from './pages/MaterialConsumptionsPage'
+import InspectionsPage from './pages/InspectionsPage'
+import InspectionCreatePage from './pages/InspectionCreatePage'
+import InspectionDetailPage from './pages/InspectionDetailPage'
+import { operationsPermissions } from './operations/permissions'
 import WorkOrderDetailPage from './pages/WorkOrderDetailPage'
 import { workOrderPermissions } from './workOrders/permissions'
 
@@ -45,6 +51,25 @@ export function AppRoutes() {
           </Route>
           <Route element={<PermissionRoute permission={unitPermissions.create} />}>
             <Route path="/units/new" element={<UnitCreatePage />} />
+          </Route>
+          <Route element={<PermissionRoute permission={operationsPermissions.processesView} />}>
+            <Route path="/processes" element={<OperationsCatalogPage key="processes" kind="processes" />} />
+          </Route>
+          <Route element={<PermissionRoute permission={operationsPermissions.materialsView} />}>
+            <Route path="/materials" element={<OperationsCatalogPage key="materials" kind="materials" />} />
+            <Route path="/materials/consumptions" element={<MaterialConsumptionsPage />} />
+          </Route>
+          <Route element={<PermissionRoute permission={operationsPermissions.inspectionView} />}>
+            <Route path="/inspections" element={<InspectionsPage />} />
+            <Route path="/inspections/:inspectionId" element={<InspectionDetailPage />} />
+            <Route path="/work-orders/:workOrderId/inspections" element={<InspectionsPage />} />
+          </Route>
+          <Route element={<PermissionRoute permission={operationsPermissions.inspectionExecute} />}>
+            <Route path="/inspections/new" element={<InspectionCreatePage />} />
+            <Route path="/work-orders/:workOrderId/inspections/new" element={<InspectionCreatePage />} />
+          </Route>
+          <Route element={<PermissionRoute permission={operationsPermissions.inspectionManage} />}>
+            <Route path="/inspection/checklists" element={<OperationsCatalogPage key="checklists" kind="checklists" />} />
           </Route>
           <Route element={<PermissionRoute permission={workOrderPermissions.view} />}>
             <Route path="/work-orders" element={<WorkOrdersPage />} />
