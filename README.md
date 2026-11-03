@@ -182,6 +182,86 @@ Supervisor retains view/create/update/assign; Operator retains view only; Inspec
 No automatic Unit status transitions, Process sequencing, Time Tracking, Material consumption, Inspection workflow, notifications, audit timeline, or SSO LDRH are implemented in Phase 5.
 
 
+## Processes, materials and inspection
+
+Phases 6, 8 and 9 extend the operational container without implementing Phase 7 Time Tracking. Upgrade existing Phase 5 installations with `docker compose exec backend php artisan migrate`. The additive operations migration creates the domain tables, history-preserving foreign keys, and the nullable Work Order current-step pointer. It adds no production master data, operators, checklists or operational records. Existing role grants and permission names are unchanged.
+
+### Process catalog and sequence
+
+`Process` codes are trimmed/uppercased, unique and limited to 80 characters; names allow 160 characters and descriptions 5,000 plain-text characters. Records are activated/deactivated rather than deleted. Remove a process from the global sequence before deactivating it.
+
+`ProcessSequenceStep` defines up to 100 ordered, distinct active processes. A transaction replaces the configuration without temporary unique-position collisions. A dedicated `operation_mutexes` infrastructure row serializes sequence replacement, catalog changes and snapshot reads, including an empty configuration; it is not business master data.
+
+New Work Orders snapshot the configured sequence into `WorkOrderProcessStep`, preserving process code/name and position. Existing snapshots never change when the catalog is renamed or the global sequence is reordered. The first snapshot step becomes `currentProcessStep`. The next step is the first greater position within that same snapshot; the final step has no next step. Generation without a sequence still succeeds with `process_flow_initialized=false` and no pointer. Existing Work Orders can be explicitly initialized once by a process manager, including historical orders; initialization changes sequence metadata only.
+
+| API endpoint | Authorization |
+| --- | --- |
+| `GET /api/processes`, `GET /api/processes/{process}` | `processes.view` |
+| `POST /api/processes`, `PATCH /api/processes/{process}` | `processes.manage` |
+| `GET /api/process-sequence` | `processes.view` |
+| `PUT /api/process-sequence` with `process_ids` | `processes.manage` |
+| `GET /api/work-orders/{workOrder}/process-flow` | Work Order visibility |
+| `POST /api/work-orders/{workOrder}/process-flow/initialize` | `processes.manage` |
+
+`/processes` provides catalog search, pagination, activation/editing and explicit sequence ordering. Work Order detail displays the current/next process and historical sequence. No process advancement, activity, pause/resume, duration or timer API is implemented; Phase 7 can later attach timing records to the existing step IDs.
+
+### Materials and consumption
+
+`Material` has a unique uppercase code, name, plain-text description, normalized unit string and optional 120-character `warehouse_reference`. Unit strings are trimmed and lowercased, with `L` as the normalized litre spelling. No unit taxonomy or MySQL ENUM is introduced.
+
+Consumption uses `DECIMAL(12,3)` with positive quantities up to 999999999.999 and at most three fractional digits; excess precision is rejected rather than silently rounded. Only active materials and non-terminal Work Orders are accepted. The optional process-step ID must belong to that Work Order; legacy/general consumption may omit it. The server owns the Work Order, actor and consumption timestamp. Material code/name/unit are snapshotted so later catalog edits cannot change the historical meaning of a quantity.
+
+VIN is derived through consumption → Work Order → Diagnosis → Unit; neither VIN nor unit_id is duplicated in consumption storage. There is no consumption edit/delete workflow or inventory balance mutation.
+
+| API endpoint | Authorization |
+| --- | --- |
+| `GET /api/materials`, `GET /api/materials/{material}` | `materials.view` |
+| `POST /api/materials`, `PATCH /api/materials/{material}` | `materials.manage` |
+| `GET /api/material-consumptions` | `materials.view` |
+| `GET /api/work-orders/{workOrder}/material-consumptions` | `materials.view` |
+| `POST /api/work-orders/{workOrder}/material-consumptions` | `materials.consume` plus Work Order visibility |
+| `GET /api/integrations/warehouse/v1/materials` | `materials.manage` |
+| `GET /api/integrations/warehouse/v1/material-consumptions` | `materials.manage` |
+
+Warehouse v1 responses expose `contract_version: "1"`, stable resource IDs, references, `data`, pagination metadata and timestamps. Both accept `updated_since`, `page` and `per_page`; the timestamp filter is inclusive and normalized to UTC. Consumers should upsert by stable ID and tolerate repeated boundary records. `MaterialConsumption.external_reference` is optional metadata, not a stock-movement identifier generated by a Warehouse call. Contracts currently require application session authentication; machine authentication, production Warehouse connectivity, stock requests and inventory synchronization are deferred.
+
+`/materials` manages the catalog; `/materials/consumptions` searches history by VIN/material. Work Order detail displays paginated consumption history and allows authorized users to record quantities against snapshot steps, defaulting to the current step when initialized.
+
+### Inspection, automatic rework and release
+
+Only completed Work Orders can receive inspections. Inspector users select completed orders through `GET /api/inspection/work-orders` using `inspection.execute`, without gaining general Work Order visibility or management permissions.
+
+Checklists and criteria are configurable, activated/deactivated and never deleted through the API. Criteria have unique codes/positions per checklist, explicit required flags and transactional ordering. Inspection creation requires an active checklist with active criteria, locks the Work Order, and snapshots checklist name plus active criteria code/label/description/order/required flags. Subsequent catalog edits do not change inspection meaning. One draft per Work Order is protected by row locks and a unique generated draft key; multiple completed inspections are allowed.
+
+Draft answers are `compliant` / Cumple or `non_compliant` / No cumple, with nullable plain-text comments up to 2,000 characters. Inspection notes allow 5,000 plain-text characters. Required unanswered criteria prevent completion. The server computes the overall result from required criteria: any required No cumple produces `failed`; otherwise it produces `passed`. Optional unanswered/non-compliant criteria do not override this rule.
+
+Failed completion requires a trimmed plain-text `rework_cause` up to 5,000 characters. The same transaction creates exactly one `Rework` for that Inspection and sets Unit.status to `rework`. A later passed inspection resolves open reworks for its Work Order and sets the Unit to `ready_for_release`. Completed inspections are immutable; reinspection creates another record. These operations do not reopen a Work Order, generate another Work Order, change Diagnosis/Defects, or model corrective time/activity.
+
+| API endpoint | Authorization |
+| --- | --- |
+| `GET /api/inspection/checklists`, `GET /api/inspection/checklists/{checklist}` | `inspection.view`, `inspection.execute` or `inspection.manage` |
+| `POST /api/inspection/checklists`, `PATCH /api/inspection/checklists/{checklist}` | `inspection.manage` |
+| `POST /api/inspection/checklists/{checklist}/items` | `inspection.manage` |
+| `PATCH /api/inspection/checklists/{checklist}/items/{item}` | `inspection.manage`; scoped ownership |
+| `PUT /api/inspection/checklists/{checklist}/item-order` with all `item_ids` | `inspection.manage` |
+| `GET /api/inspections`, `GET /api/inspections/{inspection}` | `inspection.view` |
+| `GET /api/work-orders/{workOrder}/inspections` | `inspection.view` |
+| `POST /api/work-orders/{workOrder}/inspections` | `inspection.execute` |
+| `PATCH /api/inspections/{inspection}` | `inspection.execute`; draft notes/items only |
+| `POST /api/inspections/{inspection}/complete` | `inspection.execute`; optional/required cause determined by answers |
+| `POST /api/inspections/{inspection}/release` | `release.execute` |
+
+Draft PATCH accepts `items: [{id, result, comment}]`, where each ID belongs to that Inspection's snapshotted result rows. Creation accepts `inspection_checklist_id` and optional notes. Completion accepts only `rework_cause`; overall results, actors and timestamps are server controlled.
+
+Release requires all six backend checks: completed Inspection, passed result, latest completed Inspection for its Work Order (completion time then ID), completed Work Order, no open Rework for that Work Order, and no previous release for that Inspection. The transaction creates `UnitRelease` with the session actor/time and sets the Unit to `released`. Inspection uniqueness and Unit/Work Order row locks protect concurrent creation/completion/release; duplicate attempts return clean 422 responses. Unit IDs are not globally unique in releases, allowing later lifecycle releases. The existing Phase 3 manual Unit editing API remains unchanged; formal release records can only be created through this validated workflow.
+
+`/inspections`, `/inspections/:inspectionId`, `/inspections/new`, nested Work Order inspection routes, and `/inspection/checklists` provide listing, creation, configuration, execution, automatic rework display and release validation. The UI displays backend result options, required-answer summaries, historical failed criteria and release checks. Catalog and mutation actions are permission-specific; backend policies remain authoritative.
+
+All operational lists use server pagination (default 20, maximum 100), safe sort allowlists and deterministic ID ties. Catalogs support search/activity filters; materials also filter by unit. Consumption supports VIN/work-order/search filters and inspections support Work Order/status/search filters. All writes retain Sanctum SPA sessions/CSRF, reject unsupported actor/parent fields and use safe API errors. Historical records use restrictive FKs; removed user accounts leave nullable actor references.
+
+Phase 7 Time Tracking and Phase 10 generic traceability/event infrastructure remain deferred. No timer/activity tables, production Warehouse connection, generic timeline, notifications or SSO LDRH are added.
+
+
 ## Validation
 
 ```bash
