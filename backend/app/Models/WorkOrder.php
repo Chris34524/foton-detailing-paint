@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['priority', 'notes'])]
 class WorkOrder extends Model
@@ -21,6 +22,31 @@ class WorkOrder extends Model
     protected function casts(): array
     {
         return ['status' => WorkOrderStatus::class, 'priority' => WorkOrderPriority::class, 'assigned_at' => 'datetime'];
+    }
+
+    public function processSteps(): HasMany
+    {
+        return $this->hasMany(WorkOrderProcessStep::class)->orderBy('position');
+    }
+
+    public function currentProcessStep(): BelongsTo
+    {
+        return $this->belongsTo(WorkOrderProcessStep::class, 'current_process_step_id');
+    }
+
+    public function inspections(): HasMany
+    {
+        return $this->hasMany(Inspection::class);
+    }
+
+    public function materialConsumptions(): HasMany
+    {
+        return $this->hasMany(MaterialConsumption::class);
+    }
+
+    public function reworks(): HasMany
+    {
+        return $this->hasMany(Rework::class);
     }
 
     public function diagnosis(): BelongsTo
