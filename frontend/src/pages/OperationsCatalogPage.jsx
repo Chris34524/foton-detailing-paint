@@ -1,0 +1,62 @@
+import { useCallback, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import useAuth from '../auth/useAuth'
+import useData from '../diagnosis/useDiagnosisData'
+import Pagination from '../diagnosis/Pagination'
+import operationsService from '../operations/operationsService'
+import { operationsPermissions as permissions } from '../operations/permissions'
+import { LoadState } from '../operations/Feedback'
+import CatalogForm from '../operations/CatalogForm'
+import SequencePanel from '../operations/SequencePanel'
+import ChecklistItems from '../operations/ChecklistItems'
+const configs = {
+  processes: { title: 'Procesos', manage: permissions.processesManage },
+  materials: { title: 'Materiales', manage: permissions.materialsManage },
+  checklists: { title: 'Checklists de inspección', manage: permissions.inspectionManage },
+}
+export default function OperationsCatalogPage({ kind }) {
+  const config = configs[kind]
+  const { can } = useAuth()
+  const [params, setParams] = useSearchParams()
+  const query = params.toString()
+  const [editor, setEditor] = useState(null)
+  const [itemsFor, setItemsFor] = useState(null)
+  const loader = useCallback((signal) => operationsService.catalog(kind, Object.fromEntries(new URLSearchParams(query)), { signal }), [kind, query])
+  const resource = useData('catalog:' + kind + ':' + query, loader)
+  function search(event) {
+    event.preventDefault()
+    const fields = new FormData(event.currentTarget)
+    const next = new URLSearchParams()
+    for (const [key, value] of fields) if (value.trim()) next.set(key, value.trim())
+    setParams(next)
+  }
+  function page(value) { const next = new URLSearchParams(params); next.set('page', value); setParams(next) }
+  return <section className="workspace-card">
+    <div className="section-heading"><h1>{config.title}</h1>
+      {can(config.manage) && <button className="primary-button" onClick={() => setEditor({ record: null })}>Nuevo registro</button>}</div>
+    {kind === 'materials' && <p><Link to="/materials/consumptions">Consultar consumos por VIN</Link></p>}
+    {kind === 'checklists' && <p><Link to="/inspections">Volver a Inspección</Link></p>}
+    <form key={query} className="diagnosis-search" onSubmit={search}>
+      <div><label htmlFor="catalog-search">Buscar en catálogo</label><input id="catalog-search" name="search" maxLength={255} defaultValue={params.get('search') || ''} /></div>
+      <div><label htmlFor="catalog-active">Actividad</label><select id="catalog-active" name="active" defaultValue={params.get('active') || ''}><option value="">Todos</option><option value="1">Activos</option><option value="0">Inactivos</option></select></div>
+      {kind === 'materials' && <div><label htmlFor="catalog-unit">Unidad de medida</label><input id="catalog-unit" name="unit" maxLength={24} defaultValue={params.get('unit') || ''} /></div>}
+      <button>Buscar</button><button type="button" onClick={() => setParams({})}>Limpiar filtros</button>
+    </form>
+    {editor && <CatalogForm key={kind + ':' + (editor.record?.id ?? 'new')} kind={kind} record={editor.record} onCancel={() => setEditor(null)}
+      onSaved={() => { setEditor(null); resource.retry() }} />}
+    <LoadState resource={resource}>{resource.data && <>
+      {resource.data.data.length === 0 ? <p className="empty-state">No hay registros configurados con estos criterios.</p>
+        : <div className="table-scroll"><table><caption className="sr-only">{config.title}</caption><thead><tr>
+          {kind !== 'checklists' && <th>Código</th>}<th>Nombre</th>{kind === 'materials' && <th>Unidad</th>}<th>Actividad</th><th>Acciones</th>
+        </tr></thead><tbody>{resource.data.data.map((record) => <tr key={record.id}>
+          {kind !== 'checklists' && <td>{record.code}</td>}<td>{record.name}</td>{kind === 'materials' && <td>{record.unit}</td>}
+          <td>{record.is_active ? 'Activo' : 'Inactivo'}</td><td>{can(config.manage) && <>
+            <button onClick={() => setEditor({ record })} aria-label={'Editar ' + record.name}>Editar</button>
+            {kind === 'checklists' && <button onClick={() => setItemsFor(record)} aria-label={'Criterios de ' + record.name}>Criterios</button>}
+          </>}</td></tr>)}</tbody></table></div>}
+      <Pagination meta={resource.data.meta} onPage={page} label="Paginación del catálogo" />
+    </>}</LoadState>
+    {kind === 'processes' && <SequencePanel />}
+    {kind === 'checklists' && itemsFor && can(config.manage) && <ChecklistItems key={itemsFor.id} checklistId={itemsFor.id} />}
+  </section>
+}
