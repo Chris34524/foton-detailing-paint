@@ -77,7 +77,7 @@ class InventoryConsumptionTest extends OperationsTestCase
         $this->getJson('/api/material-consumptions')->assertOk()->assertJsonPath('data.0.inventory_tracking', 'legacy_untracked')->assertJsonPath('data.0.inventory_movement', null);
         $this->assertDatabaseCount('inventory_movements', 0);
         $this->assertNull($legacy->inventory_movement_id);
-        $this->getJson('/api/integrations/warehouse/v1/materials')->assertOk()->assertJsonPath('data.0.stock_actual','0.000000');
-        $this->getJson('/api/integrations/warehouse/v1/material-consumptions')->assertOk()->assertJsonPath('data.0.inventory_movement',null);
+        $this->getJson('/api/integrations/warehouse/v1/materials')->assertOk()->assertJsonPath('data.0.stock_actual', '0.000000');
+        $this->getJson('/api/integrations/warehouse/v1/material-consumptions')->assertOk()->assertJsonPath('data.0.inventory_movement', null);
     }
 }
