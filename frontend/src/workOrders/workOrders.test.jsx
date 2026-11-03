@@ -7,10 +7,12 @@ import AuthProvider from '../auth/AuthProvider'
 import authService from '../auth/authService'
 import diagnosisService from '../diagnosis/diagnosisService'
 import workOrderService from './workOrderService'
+import operationsService from '../operations/operationsService'
 import { order, operator, meta, user, collection, httpError } from './workOrderFixtures'
 import { diagnosis, evidence } from '../diagnosis/diagnosisFixtures'
 
 vi.mock('../auth/authService', () => ({ default: { currentUser: vi.fn(), logout: vi.fn(), login: vi.fn() } }))
+vi.mock('../operations/operationsService', () => ({ default: { flow: vi.fn() } }))
 vi.mock('./workOrderService', () => ({ default: { list: vi.fn(), get: vi.fn(), meta: vi.fn(), operators: vi.fn(), generate: vi.fn(), update: vi.fn(), assign: vi.fn(), status: vi.fn() } }))
 vi.mock('../diagnosis/diagnosisService', () => ({ default: { get: vi.fn(), image: vi.fn(), meta: vi.fn(), types: vi.fn() } }))
 function LocationProbe() { const location = useLocation(); return <span data-testid="location">{location.pathname + location.search}</span> }
@@ -19,6 +21,7 @@ function renderApp(path = '/work-orders') {
 }
 beforeEach(() => {
   vi.resetAllMocks()
+  operationsService.flow.mockResolvedValue({ initialized: false, current: null, next: null, steps: [] })
   authService.currentUser.mockResolvedValue(user)
   workOrderService.list.mockResolvedValue(collection([order]))
   workOrderService.get.mockResolvedValue(structuredClone(order))
