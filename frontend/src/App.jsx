@@ -15,6 +15,9 @@ import DiagnosesPage from './pages/DiagnosesPage'
 import DiagnosisCreatePage from './pages/DiagnosisCreatePage'
 import DiagnosisDetailPage from './pages/DiagnosisDetailPage'
 import DefectTypesPage from './pages/DefectTypesPage'
+import WorkOrdersPage from './pages/WorkOrdersPage'
+import WorkOrderDetailPage from './pages/WorkOrderDetailPage'
+import { workOrderPermissions } from './workOrders/permissions'
 
 export function AppRoutes() {
   const { isLoading, sessionError, refreshUser } = useAuth()
@@ -42,6 +45,11 @@ export function AppRoutes() {
           </Route>
           <Route element={<PermissionRoute permission={unitPermissions.create} />}>
             <Route path="/units/new" element={<UnitCreatePage />} />
+          </Route>
+          <Route element={<PermissionRoute permission={workOrderPermissions.view} />}>
+            <Route path="/work-orders" element={<WorkOrdersPage />} />
+            <Route path="/work-orders/queue" element={<WorkOrdersPage queue />} />
+            <Route path="/work-orders/:workOrderId" element={<WorkOrderDetailPage />} />
           </Route>
           <Route element={<PermissionRoute permission={diagnosisPermissions.view} />}>
             <Route path="/diagnoses" element={<DiagnosesPage />} />

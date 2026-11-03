@@ -8,10 +8,12 @@ use App\Models\DefectType;
 use App\Models\Diagnosis;
 use App\Models\Unit;
 use App\Models\User;
+use App\Models\WorkOrder;
 use App\Policies\DefectTypePolicy;
 use App\Policies\DiagnosisPolicy;
 use App\Policies\UnitPolicy;
 use App\Policies\UserPolicy;
+use App\Policies\WorkOrderPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -31,6 +33,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(User::class, UserPolicy::class);
+        Gate::policy(WorkOrder::class, WorkOrderPolicy::class);
         Gate::policy(Unit::class, UnitPolicy::class);
         Gate::policy(Diagnosis::class, DiagnosisPolicy::class);
         Gate::policy(DefectType::class, DefectTypePolicy::class);

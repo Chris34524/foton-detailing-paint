@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable(['notes'])]
 class Diagnosis extends Model
@@ -23,6 +24,11 @@ class Diagnosis extends Model
     public function diagnosedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'diagnosed_by');
+    }
+
+    public function workOrder(): HasOne
+    {
+        return $this->hasOne(WorkOrder::class);
     }
 
     public function defects(): HasMany

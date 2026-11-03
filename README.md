@@ -121,7 +121,7 @@ Catalog names are trimmed, unique, and limited to 120 characters; descriptions a
 | `GET /api/defect-types` | `diagnosis.view`; active types by default |
 | `POST /api/defect-types` and `PATCH /api/defect-types/{defectType}` | `diagnosis.manage_catalog` |
 | `POST /api/diagnoses/{diagnosis}/defects/{defect}/evidences` | `diagnosis.update` |
-| `GET /api/diagnoses/{diagnosis}/defects/{defect}/evidences/{evidence}` | `diagnosis.view` |
+| `GET /api/diagnoses/{diagnosis}/defects/{defect}/evidences/{evidence}` | `diagnosis.view`, or Work Order view for a source Diagnosis that has a Work Order |
 
 All routes require `auth:sanctum`; writes retain the existing SPA CSRF protection. Nested bindings reject mismatched Diagnosis/Defect/Evidence combinations with 404. Actor IDs, parent IDs, disk names, and storage paths are assigned by the server rather than client mass assignment. API errors omit internal paths and debug traces while retaining authentication and validation responses.
 
@@ -140,6 +140,47 @@ PHP accepts up to 52 MiB per request and Nginx enforces the matching body limit.
 Evidence resources expose metadata, safe uploader ID/name, and an authenticated API view URL; they never expose `disk`, `path`, or host filesystem paths. Retrieval streams the image with inline disposition, private/no-store caching, and nosniff headers. React requests authenticated blobs, creates temporary object URLs, and revokes them when they are no longer displayed. No public filesystem URL is used, and no evidence deletion/replacement workflow is added.
 
 The SPA adds `/diagnoses`, `/diagnoses/:diagnosisId`, `/units/:unitId/diagnoses`, `/units/:unitId/diagnoses/new`, and `/diagnosis/defect-types`. Unit detail links into Diagnosis without changing Unit editing. View-only users receive read-only content; catalog controls require catalog permission. Work Orders, repair execution, inspection/release approvals, status/location history, KPIs, and SSO LDRH remain outside this phase.
+
+## Work Orders
+
+Phase 5 adds the canonical `WorkOrder`, generated explicitly from one Diagnosis. A database unique foreign key allows at most one Work Order per Diagnosis; a Unit can have many through its diagnoses. The additive migration protects source history and uses nullable user foreign keys. No production jobs or operators are seeded. Upgrade with `php artisan migrate`; existing role baselines and permission names are unchanged.
+
+Generation requires `work_orders.create` and source Diagnosis access, rejects diagnoses without defects, records the session creator, and starts in `queued`. Initial `WorkOrderPriority` is the highest source defect priority: `low` / Baja (1), `medium` / Media (2), `high` / Alta (3), `critical` / Crítica (4). This is a snapshot: later defect changes do not rewrite Work Order priority. Generation does not mutate the Diagnosis, Defects, evidence, or Unit status. Duplicate retries/concurrent requests receive a friendly 422; transactions and row locks complement database uniqueness.
+
+`WorkOrderStatus` defines the lifecycle:
+
+| Current status | Allowed destinations |
+| --- | --- |
+| `queued` / En cola | `in_progress`, `blocked`, `cancelled` |
+| `in_progress` / En proceso | `blocked`, `completed`, `cancelled` |
+| `blocked` / Bloqueada | `queued`, `in_progress`, `cancelled` |
+| `completed` / Completada | Terminal |
+| `cancelled` / Cancelada | Terminal |
+
+Entering `in_progress` requires an assignee. Assignment is separate from status: a queued order may already have an operator. Only users holding the `operator` role may be assigned. Assignment/reassignment records the session assigning user and current timestamp; unassignment records the actor and clears the assignment timestamp. An in-progress order cannot be left unassigned. Completed/cancelled orders reject status, assignment, priority, and notes changes. There is no reopening or deletion workflow. Mutations reload and lock the current row before enforcing these rules.
+
+| API endpoint | Authorization |
+| --- | --- |
+| `POST /api/diagnoses/{diagnosis}/work-order` | `work_orders.create` plus Diagnosis view |
+| `GET /api/work-orders` | `work_orders.view` |
+| `GET /api/work-orders/queue` | `work_orders.view` |
+| `GET /api/work-orders/meta` | `work_orders.view` |
+| `GET /api/work-orders/operators` | `work_orders.assign` |
+| `GET /api/work-orders/{workOrder}` | `work_orders.view` |
+| `PATCH /api/work-orders/{workOrder}` | `work_orders.update`; priority/notes only |
+| `PATCH /api/work-orders/{workOrder}/status` | `work_orders.update` |
+| `PATCH /api/work-orders/{workOrder}/assignment` | `work_orders.assign` |
+
+All endpoints require Sanctum sessions and retain SPA CSRF protection. Client-supplied parent IDs, creator, assignment actor/timestamp, and fields belonging to another mutation workflow are rejected. Notes are trimmed plain text, nullable, maximum 5,000 characters. Empty general updates return 422. Resources expose only safe actor ID/name, source Unit/Diagnosis information, status/priority labels and current allowed transitions.
+
+List and queue filters: `search` across Unit VIN/model and Work Order/Diagnosis notes, `status`, `priority`, `assignment=assigned|unassigned`, `assigned_to`, `page`, and `per_page` (default 20, maximum 100). General listing accepts allowlisted `sort=created_at|updated_at|status|priority` and `direction=asc|desc`, defaulting to newest first with ID ties. Priority sorting uses enum ranking. The active queue excludes completed/cancelled orders and always orders by priority descending, then creation time ascending, then ID ascending. Queue reads have no write side effects. Operator lookup returns ID/name only, with bounded pagination and optional name search.
+
+The SPA adds `/work-orders`, `/work-orders/queue`, and `/work-orders/:workOrderId`, guarded by `work_orders.view`. Diagnosis detail exposes explicit generation with a refreshed server priority preview or a link to the existing order. Trabajos provides list/queue navigation, URL-backed filters, “Mis trabajos”, assignment search, permitted status transitions, and active-order priority/notes editing. Options and transition rules come from backend metadata/resources.
+
+Supervisor retains view/create/update/assign; Operator retains view only; Inspector gains no Work Order permissions. Operators can read the necessary source Diagnosis/Defects inside Work Order detail. The existing authenticated evidence endpoint additionally allows `work_orders.view` only when that Diagnosis has a Work Order; it does not grant general Diagnosis browsing/editing, catalog access, or evidence upload. Nested evidence binding and private storage protections remain unchanged.
+
+No automatic Unit status transitions, Process sequencing, Time Tracking, Material consumption, Inspection workflow, notifications, audit timeline, or SSO LDRH are implemented in Phase 5.
+
 
 ## Validation
 

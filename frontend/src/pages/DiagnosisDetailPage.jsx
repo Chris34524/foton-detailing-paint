@@ -9,6 +9,7 @@ import DiagnosisError from '../diagnosis/DiagnosisError'
 import DiagnosisNotesForm from '../diagnosis/DiagnosisNotesForm'
 import DefectForm from '../diagnosis/DefectForm'
 import DefectCard from '../diagnosis/DefectCard'
+import GenerateWorkOrder from '../workOrders/GenerateWorkOrder'
 
 export default function DiagnosisDetailPage() {
   const { diagnosisId } = useParams()
@@ -46,6 +47,7 @@ export default function DiagnosisDetailPage() {
       <div><dt>Fecha de diagnóstico</dt><dd>{formatUnitDate(diagnosis.created_at)}</dd></div>
       <div><dt>Diagnosticado por</dt><dd>{diagnosis.diagnosed_by?.name || 'Usuario no disponible'}</dd></div>
     </dl>
+    <GenerateWorkOrder diagnosis={diagnosis} />
     <h2>Notas generales</h2><p className="plain-text">{diagnosis.notes || 'Sin notas generales.'}</p>
     {canEdit && <DiagnosisNotesForm key={diagnosis.id} diagnosis={diagnosis} onSaved={(updated) => setData((current) => ({ ...current, diagnosis: updated }))} />}
     {!canEdit && <p className="muted">Consulta de solo lectura.</p>}

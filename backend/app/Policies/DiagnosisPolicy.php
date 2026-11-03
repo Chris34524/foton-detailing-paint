@@ -19,6 +19,12 @@ class DiagnosisPolicy
         return $user->can(Permission::DiagnosisView);
     }
 
+    public function viewEvidence(User $user, Diagnosis $diagnosis): bool
+    {
+        return $user->can('view', $diagnosis)
+            || ($user->can(Permission::WorkOrdersView) && $diagnosis->workOrder()->exists());
+    }
+
     public function create(User $user, Unit $unit): bool
     {
         return $user->can(Permission::DiagnosisCreate) && $user->can('view', $unit);

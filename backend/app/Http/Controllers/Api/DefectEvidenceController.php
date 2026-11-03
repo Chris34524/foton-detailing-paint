@@ -31,7 +31,7 @@ class DefectEvidenceController extends Controller
 
     public function show(Diagnosis $diagnosis, Defect $defect, DefectEvidence $evidence, DefectEvidenceStorage $storage): StreamedResponse|JsonResponse
     {
-        Gate::authorize('view', $diagnosis);
+        Gate::authorize('viewEvidence', $diagnosis);
         try {
             $disk = $storage->disk($evidence->disk);
             $exists = $disk->exists($evidence->path);

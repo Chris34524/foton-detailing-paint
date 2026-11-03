@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\DiagnosisMetaController;
 use App\Http\Controllers\Api\UnitController;
 use App\Http\Controllers\Api\UnitMetaController;
 use App\Http\Controllers\Api\UnitVinLookupController;
+use App\Http\Controllers\Api\WorkOrderController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', function () {
@@ -18,6 +19,17 @@ Route::get('/health', function () {
 });
 
 Route::middleware('auth:sanctum')->scopeBindings()->group(function (): void {
+    Route::post('/diagnoses/{diagnosis}/work-order', [WorkOrderController::class, 'generate'])->whereNumber('diagnosis')->name('diagnoses.work-order.store');
+    Route::prefix('work-orders')->name('work-orders.')->group(function (): void {
+        Route::get('/', [WorkOrderController::class, 'index'])->name('index');
+        Route::get('/queue', [WorkOrderController::class, 'queue'])->name('queue');
+        Route::get('/meta', [WorkOrderController::class, 'meta'])->name('meta');
+        Route::get('/operators', [WorkOrderController::class, 'operators'])->name('operators');
+        Route::get('/{workOrder}', [WorkOrderController::class, 'show'])->whereNumber('workOrder')->name('show');
+        Route::patch('/{workOrder}', [WorkOrderController::class, 'update'])->whereNumber('workOrder')->name('update');
+        Route::patch('/{workOrder}/assignment', [WorkOrderController::class, 'assignment'])->whereNumber('workOrder')->name('assignment');
+        Route::patch('/{workOrder}/status', [WorkOrderController::class, 'status'])->whereNumber('workOrder')->name('status');
+    });
     Route::get('/diagnosis/meta', DiagnosisMetaController::class)->name('diagnosis.meta');
     Route::get('/diagnoses', [DiagnosisController::class, 'index'])->name('diagnoses.index');
     Route::get('/units/{unit}/diagnoses', [DiagnosisController::class, 'index'])->whereNumber('unit')->name('units.diagnoses.index');
