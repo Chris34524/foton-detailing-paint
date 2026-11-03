@@ -7,10 +7,13 @@ import AuthProvider from '../auth/AuthProvider'
 import authService from '../auth/authService'
 import workOrderService from '../workOrders/workOrderService'
 import operationsService from './operationsService'
+import inventoryService from './inventoryService'
+import { inventoryMeta, preview } from './inventoryFixtures'
 import { order } from '../workOrders/workOrderFixtures'
 import { processA, processB, material, checklist, inspection, flow, consumption, user, releaseChecks, collection, httpError } from './operationsFixtures'
 vi.mock('../auth/authService', () => ({ default: { currentUser: vi.fn(), login: vi.fn(), logout: vi.fn() } }))
 vi.mock('../workOrders/workOrderService', () => ({ default: { get: vi.fn(), meta: vi.fn() } }))
+vi.mock('./inventoryService', () => ({ default: { meta: vi.fn(), preview: vi.fn() } }))
 vi.mock('./operationsService', () => ({ default: { catalog: vi.fn(), saveCatalog: vi.fn(), checklist: vi.fn(), saveItem: vi.fn(), orderItems: vi.fn(),
   sequence: vi.fn(), saveSequence: vi.fn(), flow: vi.fn(), initialize: vi.fn(), consumptions: vi.fn(), consume: vi.fn(), inspections: vi.fn(),
   eligibleOrders: vi.fn(), createInspection: vi.fn(), inspection: vi.fn(), saveInspection: vi.fn(), complete: vi.fn(), release: vi.fn() } }))
@@ -18,6 +21,8 @@ function LocationProbe() { const location = useLocation(); return <span data-tes
 function renderApp(path) { return render(<MemoryRouter initialEntries={[path]}><AuthProvider><AppRoutes /><LocationProbe /></AuthProvider></MemoryRouter>) }
 beforeEach(() => {
   vi.resetAllMocks()
+  inventoryService.meta.mockResolvedValue(inventoryMeta)
+  inventoryService.preview.mockResolvedValue(preview)
   authService.currentUser.mockResolvedValue(user)
   operationsService.catalog.mockImplementation(async (kind) => collection(kind === 'processes' ? [processA, processB] : kind === 'materials' ? [material] : [checklist]))
   operationsService.sequence.mockResolvedValue([{ id: 1, position: 1, process: processA }])
@@ -99,7 +104,7 @@ describe('process catalog and sequence', () => {
     await clicker.type(screen.getByLabelText('Nombre'), 'Material nuevo')
     await clicker.click(screen.getByLabelText('Activo'))
     await clicker.click(screen.getByRole('button', { name: 'Guardar registro' }))
-    await waitFor(() => expect(operationsService.saveCatalog).toHaveBeenCalledWith('materials', 5, expect.objectContaining({ name: 'Material nuevo', is_active: false, unit: 'kg' })))
+    await waitFor(() => expect(operationsService.saveCatalog).toHaveBeenCalledWith('materials', 5, expect.objectContaining({ name: 'Material nuevo', is_active: false, unit: 'Kg' })))
   })
   it('shows validation errors from catalog writes', async () => {
     operationsService.saveCatalog.mockRejectedValue(httpError(422, { errors: { code: ['El código ya existe.'] } }))
@@ -157,8 +162,9 @@ describe('materials and checklist administration', () => {
     expect(within(form).getByText(order.unit.vin)).toBeInTheDocument()
     expect(within(form).getByLabelText('Proceso del consumo')).toHaveValue('51')
     await clicker.type(within(form).getByLabelText('Cantidad'), '1.75')
+    await waitFor(() => expect(within(form).getByRole('button', { name: 'Guardar consumo' })).toBeEnabled())
     await clicker.click(within(form).getByRole('button', { name: 'Guardar consumo' }))
-    await waitFor(() => expect(operationsService.consume).toHaveBeenCalledWith(15, { material_id: 5, quantity: '1.75', work_order_process_step_id: 51, notes: null }))
+    await waitFor(() => expect(operationsService.consume).toHaveBeenCalledWith(15, { material_id: 5, quantity: '1.75', unit_original: 'Kg', area_destination: null, work_order_process_step_id: 51, notes: null, idempotency_key: expect.any(String) }))
   })
   it('shows rejected consumption feedback', async () => {
     operationsService.consume.mockRejectedValue(httpError(422, { errors: { material_id: ['Selecciona un material activo.'] } }))
@@ -167,6 +173,7 @@ describe('materials and checklist administration', () => {
     await clicker.click(await screen.findByRole('button', { name: 'Registrar consumo' }))
     await clicker.selectOptions(await screen.findByLabelText('Material', { selector: 'select' }), '5')
     await clicker.type(screen.getByLabelText('Cantidad'), '2')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Guardar consumo' })).toBeEnabled())
     await clicker.click(screen.getByRole('button', { name: 'Guardar consumo' }))
     expect(await screen.findByText('Selecciona un material activo.')).toBeInTheDocument()
   })
@@ -175,7 +182,7 @@ describe('materials and checklist administration', () => {
     renderApp('/work-orders/15')
     expect(await screen.findByRole('heading', { name: 'Materiales consumidos' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Registrar consumo' })).not.toBeInTheDocument()
-    expect(await screen.findByText('1.750 kg')).toBeInTheDocument()
+    expect(await screen.findByText('1.750 Kg')).toBeInTheDocument()
   })
   it('filters global consumption by VIN and displays the process snapshot', async () => {
     const clicker = userEvent.setup()

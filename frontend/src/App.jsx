@@ -17,6 +17,10 @@ import DiagnosisDetailPage from './pages/DiagnosisDetailPage'
 import DefectTypesPage from './pages/DefectTypesPage'
 import WorkOrdersPage from './pages/WorkOrdersPage'
 import OperationsCatalogPage from './pages/OperationsCatalogPage'
+import InventoryMovementsPage from './pages/InventoryMovementsPage'
+import InventoryMovementCreatePage from './pages/InventoryMovementCreatePage'
+import InventoryMovementDetailPage from './pages/InventoryMovementDetailPage'
+import InventoryDashboardPage from './pages/InventoryDashboardPage'
 import MaterialConsumptionsPage from './pages/MaterialConsumptionsPage'
 import InspectionsPage from './pages/InspectionsPage'
 import InspectionCreatePage from './pages/InspectionCreatePage'
@@ -57,6 +61,10 @@ export function AppRoutes() {
           </Route>
           <Route element={<PermissionRoute permission={operationsPermissions.materialsView} />}>
             <Route path="/materials" element={<OperationsCatalogPage key="materials" kind="materials" />} />
+            <Route path="/materials/movements" element={<InventoryMovementsPage />} />
+            <Route path="/materials/movements/new" element={<InventoryMovementCreatePage />} />
+            <Route path="/materials/movements/:movementId" element={<InventoryMovementDetailPage />} />
+            <Route path="/materials/inventory/dashboard" element={<InventoryDashboardPage />} />
             <Route path="/materials/consumptions" element={<MaterialConsumptionsPage />} />
           </Route>
           <Route element={<PermissionRoute permission={operationsPermissions.inspectionView} />}>

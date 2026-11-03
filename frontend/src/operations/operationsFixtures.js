@@ -2,7 +2,7 @@ import { unit } from '../diagnosis/diagnosisFixtures'
 export { collection, httpError } from '../diagnosis/diagnosisFixtures'
 export const processA = { id: 1, code: 'DETAIL', name: 'Detallado', description: null, is_active: true }
 export const processB = { id: 2, code: 'PAINT', name: 'Pintura', description: null, is_active: true }
-export const material = { id: 5, code: 'MAT-TEST', name: 'Material de prueba', unit: 'kg', is_active: true }
+export const material = { id: 5, code: 'MAT-TEST', name: 'Material de prueba', unit: 'Kg', is_active: true }
 export const checklist = { id: 9, name: 'Checklist de salida', is_active: true, description: null, items: [
   { id: 91, code: 'SURFACE', label: 'Superficie sin daño', description: null, sort_order: 1, is_active: true, is_required: true },
   { id: 92, code: 'CLEAN', label: 'Limpieza', description: null, sort_order: 2, is_active: true, is_required: false },

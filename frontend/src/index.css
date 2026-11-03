@@ -151,3 +151,31 @@ textarea { font: inherit; width: 100%; resize: vertical; border: 1px solid #acb8
 .inspection-results { list-style: none; padding: 0; }
 .dashboard-header nav { flex-wrap: wrap; }
 @media (max-width: 540px) { .picker-search { flex-wrap: wrap; } .operations-form { padding: 1rem; } }
+.module-navigation { flex-wrap: wrap; }
+.stock-badge { display: inline-block; white-space: nowrap; padding: .25rem .7rem; border: 1px solid #ccd4df; border-radius: 2rem; background: #f0f3f7; color: #45566d; font-size: .8rem; font-weight: 700; }
+.stock-badge[data-stock-status=critical] { color: #9b1c20; background: #fff0f0; border-color: #e8b6b9; }
+.stock-badge[data-stock-status=reorder] { color: #80520e; background: #fff8df; border-color: #e4ce8a; }
+.stock-badge[data-stock-status=ok] { color: #17603a; background: #ecf9f0; border-color: #bfe4cd; }
+.stock-badge[data-stock-status=overstock] { color: #6241a0; background: #f4effc; border-color: #d4c3eb; }
+.inventory-indicators { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+.inventory-indicators article { display: grid; gap: .6rem; padding: 1rem; border: 1px solid #d7e2ee; border-top: 4px solid #6782a3; border-radius: .6rem; background: #fbfcfe; }
+.inventory-indicators span { font-size: .8rem; font-weight: 600; color: #526278; }
+.inventory-indicators strong { font-size: 1.8rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.inventory-indicators [data-stock-status=critical] { border-top-color: #b4232b; }
+.inventory-indicators [data-stock-status=reorder] { border-top-color: #b07a13; }
+.inventory-indicators [data-stock-status=ok] { border-top-color: #298052; }
+.inventory-indicators [data-stock-status=overstock] { border-top-color: #7952b3; }
+.inventory-filters { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; align-items: end; margin-bottom: 1.5rem; }
+.inventory-filters label { display: block; margin-bottom: .4rem; }
+.inventory-filters .catalog-picker, .inventory-filters .form-actions { grid-column: 1 / -1; margin: 0; }
+.inventory-filters .form-actions { justify-content: start; }
+.quantity-equivalence { border-top: 1px solid #d7e2ee; margin-top: 1.5rem; padding-top: .5rem; }
+.quantity-equivalence input[readonly] { background: #eef4fb; color: #153f79; font-weight: 700; font-variant-numeric: tabular-nums; }
+.quantity-equivalence .unit-detail { margin: .5rem 0; padding: .75rem 0; }
+
+.inventory-stock-details { margin-top: .5rem; min-width: 180px; font-size: .8rem; }
+.inventory-stock-details summary { cursor: pointer; color: #154a87; }
+.inventory-stock-details dl { margin: .75rem 0; }
+.inventory-stock-details dl > div { display: flex; justify-content: space-between; gap: 1rem; padding: .2rem 0; }
+.inventory-stock-details dt { color: #526278; }
+.inventory-stock-details dd { margin: 0; white-space: nowrap; font-variant-numeric: tabular-nums; }

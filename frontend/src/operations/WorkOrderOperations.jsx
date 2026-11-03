@@ -6,50 +6,21 @@ import Pagination from '../diagnosis/Pagination'
 import operationsService from './operationsService'
 import { operationsPermissions as permissions } from './permissions'
 import { ActionError, LoadState } from './Feedback'
-import CatalogPicker from './CatalogPicker'
+import InventoryConsumptionForm from './InventoryConsumptionForm'
+import InventoryReceipt from './InventoryReceipt'
 import ConsumptionTable from './ConsumptionTable'
 
-function ConsumptionForm({ order, flow, onSaved, onCancel }) {
-  const [material, setMaterial] = useState(null)
-  const [error, setError] = useState(null)
-  const [busy, setBusy] = useState(false)
-  async function submit(event) {
-    event.preventDefault()
-    const fields = new FormData(event.currentTarget)
-    setBusy(true); setError(null)
-    try {
-      await operationsService.consume(order.id, { material_id: material ? Number(material.id) : null, quantity: fields.get('quantity'),
-        work_order_process_step_id: fields.get('process_step') ? Number(fields.get('process_step')) : null,
-        notes: fields.get('notes').trim() || null })
-      onSaved()
-    } catch (failure) { setError(failure) }
-    finally { setBusy(false) }
-  }
-  return <form className="operations-form" onSubmit={submit}>
-    <h3>Registrar consumo</h3><p className="vin-value">{order.unit.vin}</p>
-    <fieldset disabled={busy}>
-      <CatalogPicker kind="materials" label="Material" value={material?.id} selected={material} onChange={(value, record) => setMaterial(value ? record : null)} />
-      {material && <p>Unidad: {material.unit}</p>}
-      <label htmlFor="consumption-quantity">Cantidad</label><input id="consumption-quantity" name="quantity" type="number" step="0.001" min="0.001" max="999999999.999" required />
-      <label htmlFor="consumption-process">Proceso del consumo</label><select id="consumption-process" name="process_step" defaultValue={flow?.current?.step_id || ''}>
-        <option value="">Consumo general / sin proceso</option>
-        {(flow?.steps || []).map((step) => <option key={step.step_id} value={step.step_id}>{step.code} · {step.name}</option>)}
-      </select>
-      <label htmlFor="consumption-notes">Notas del consumo</label><textarea id="consumption-notes" name="notes" maxLength={5000} />
-    </fieldset><ActionError error={error} /><div className="form-actions">
-      <button className="primary-button" disabled={busy || !material}>Guardar consumo</button><button type="button" onClick={onCancel}>Cancelar consumo</button>
-    </div>
-  </form>
-}
 function MaterialsCard({ order, flow }) {
   const { can } = useAuth()
   const [page, setPage] = useState(1)
   const [adding, setAdding] = useState(false)
+  const [receipt, setReceipt] = useState(null)
   const loader = useCallback((signal) => can(permissions.materialsView) ? operationsService.consumptions({ page }, order.id, { signal }) : Promise.resolve(null), [can, page, order.id])
   const resource = useData('order-consumptions:' + order.id + ':' + page, loader)
   return <section className="operations-section"><div className="section-heading"><h2>Materiales consumidos</h2>
     {!order.is_terminal && can(permissions.materialsConsume) && !adding && <button onClick={() => setAdding(true)}>Registrar consumo</button>}</div>
-    {adding && <ConsumptionForm order={order} flow={flow} onCancel={() => setAdding(false)} onSaved={() => { setAdding(false); resource.retry() }} />}
+    {adding && <InventoryConsumptionForm order={order} flow={flow} onCancel={() => setAdding(false)} onSaved={(consumption) => { setReceipt(consumption.inventory_movement || null); setAdding(false); resource.retry() }} />}
+    {receipt && <InventoryReceipt movement={receipt} />}
     <LoadState resource={resource}>{resource.data && <><ConsumptionTable data={resource.data.data} />
       <Pagination meta={resource.data.meta} label="Paginación de consumos de la orden" onPage={setPage} /></>}</LoadState>
   </section>

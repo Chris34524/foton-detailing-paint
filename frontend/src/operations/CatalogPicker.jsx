@@ -3,12 +3,12 @@ import useData from '../diagnosis/useDiagnosisData'
 import Pagination from '../diagnosis/Pagination'
 import operationsService from './operationsService'
 import { LoadState } from './Feedback'
-export default function CatalogPicker({ kind, label, value, onChange, selected = null }) {
+export default function CatalogPicker({ kind, label, value, onChange, selected = null, activeOnly = true }) {
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState({ page: 1 })
   const loader = useCallback((signal) => kind === 'orders'
     ? operationsService.eligibleOrders(filters, { signal })
-    : operationsService.catalog(kind, { ...filters, active: 1 }, { signal }), [kind, filters])
+    : operationsService.catalog(kind, { ...filters, ...(activeOnly ? { active: 1 } : {}) }, { signal }), [kind, filters, activeOnly])
   const resource = useData('picker:' + kind + ':' + JSON.stringify(filters), loader)
   const prefix = 'picker-' + kind
   function display(record) { return kind === 'orders' ? '#' + record.id + ' · ' + record.vin + ' · ' + (record.model || 'Sin modelo') : (record.code ? record.code + ' · ' : '') + record.name }

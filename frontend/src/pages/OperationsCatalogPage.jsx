@@ -4,6 +4,10 @@ import useAuth from '../auth/useAuth'
 import useData from '../diagnosis/useDiagnosisData'
 import Pagination from '../diagnosis/Pagination'
 import operationsService from '../operations/operationsService'
+import inventoryService from '../operations/inventoryService'
+import InventoryNavigation from '../operations/InventoryNavigation'
+import InventoryTable from '../operations/InventoryTable'
+import useInventoryRefresh from '../operations/useInventoryRefresh'
 import { operationsPermissions as permissions } from '../operations/permissions'
 import { LoadState } from '../operations/Feedback'
 import CatalogForm from '../operations/CatalogForm'
@@ -23,6 +27,9 @@ export default function OperationsCatalogPage({ kind }) {
   const [itemsFor, setItemsFor] = useState(null)
   const loader = useCallback((signal) => operationsService.catalog(kind, Object.fromEntries(new URLSearchParams(query)), { signal }), [kind, query])
   const resource = useData('catalog:' + kind + ':' + query, loader)
+  const metaLoader = useCallback((signal) => kind === 'materials' ? inventoryService.meta({ signal }) : Promise.resolve(null), [kind])
+  const metadata = useData('catalog-meta:' + kind, metaLoader)
+  useInventoryRefresh(kind === 'materials' ? resource.retry : null)
   function search(event) {
     event.preventDefault()
     const fields = new FormData(event.currentTarget)
@@ -34,18 +41,22 @@ export default function OperationsCatalogPage({ kind }) {
   return <section className="workspace-card">
     <div className="section-heading"><h1>{config.title}</h1>
       {can(config.manage) && <button className="primary-button" onClick={() => setEditor({ record: null })}>Nuevo registro</button>}</div>
-    {kind === 'materials' && <p><Link to="/materials/consumptions">Consultar consumos por VIN</Link></p>}
+    {kind === 'materials' && <><InventoryNavigation /><LoadState resource={metadata}>{null}</LoadState></>}
     {kind === 'checklists' && <p><Link to="/inspections">Volver a Inspección</Link></p>}
     <form key={query} className="diagnosis-search" onSubmit={search}>
       <div><label htmlFor="catalog-search">Buscar en catálogo</label><input id="catalog-search" name="search" maxLength={255} defaultValue={params.get('search') || ''} /></div>
       <div><label htmlFor="catalog-active">Actividad</label><select id="catalog-active" name="active" defaultValue={params.get('active') || ''}><option value="">Todos</option><option value="1">Activos</option><option value="0">Inactivos</option></select></div>
       {kind === 'materials' && <div><label htmlFor="catalog-unit">Unidad de medida</label><input id="catalog-unit" name="unit" maxLength={24} defaultValue={params.get('unit') || ''} /></div>}
+      {kind === 'materials' && metadata.data && <div><label htmlFor="inventory-status">Estado de inventario</label><select id="inventory-status" name="stock_status" defaultValue={params.get('stock_status') || ''}>
+        <option value="">Todos</option>{metadata.data.stock_statuses.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
+      </select></div>}
       <button>Buscar</button><button type="button" onClick={() => setParams({})}>Limpiar filtros</button>
     </form>
-    {editor && <CatalogForm key={kind + ':' + (editor.record?.id ?? 'new')} kind={kind} record={editor.record} onCancel={() => setEditor(null)}
+    {editor && (kind !== 'materials' || metadata.data) && <CatalogForm materialMeta={metadata.data} key={kind + ':' + (editor.record?.id ?? 'new')} kind={kind} record={editor.record} onCancel={() => setEditor(null)}
       onSaved={() => { setEditor(null); resource.retry() }} />}
     <LoadState resource={resource}>{resource.data && <>
       {resource.data.data.length === 0 ? <p className="empty-state">No hay registros configurados con estos criterios.</p>
+        : kind === 'materials' ? <InventoryTable data={resource.data.data} canManage={can(config.manage)} canMove={can(permissions.materialsManage) || can(permissions.materialsConsume)} onEdit={(record) => setEditor({ record })} />
         : <div className="table-scroll"><table><caption className="sr-only">{config.title}</caption><thead><tr>
           {kind !== 'checklists' && <th>Código</th>}<th>Nombre</th>{kind === 'materials' && <th>Unidad</th>}<th>Actividad</th><th>Acciones</th>
         </tr></thead><tbody>{resource.data.data.map((record) => <tr key={record.id}>
