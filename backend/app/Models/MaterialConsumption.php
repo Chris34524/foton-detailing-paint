@@ -16,7 +16,12 @@ class MaterialConsumption extends Model
 
     protected function casts(): array
     {
-        return ['quantity' => 'decimal:3', 'consumed_at' => 'datetime'];
+        return ['quantity' => 'decimal:6', 'consumed_at' => 'datetime'];
+    }
+
+    public function inventoryMovement(): BelongsTo
+    {
+        return $this->belongsTo(InventoryMovement::class);
     }
 
     public function material(): BelongsTo

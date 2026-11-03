@@ -9,6 +9,7 @@ use App\Models\Process;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderProcessStep;
 use App\Services\ProcessFlowService;
+use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 class MaterialOperationsTest extends OperationsTestCase
@@ -31,16 +32,17 @@ class MaterialOperationsTest extends OperationsTestCase
     {
         $actor = $this->administrator();
         $material = Material::factory()->create(['unit' => 'kg', 'warehouse_reference' => 'W-1']);
+        $this->fundMaterial($material, '5');
         $process = Process::factory()->create();
         app(ProcessFlowService::class)->replace([$process->id]);
         $order = WorkOrder::factory()->create();
         app(ProcessFlowService::class)->initialize($order);
         $id = $this->postJson('/api/work-orders/'.$order->id.'/material-consumptions', [
-            'material_id' => $material->id, 'quantity' => '1.750', 'work_order_process_step_id' => $order->fresh()->current_process_step_id, 'notes' => '  Aplicado ', 'external_reference' => 'EXT-1'])->assertCreated()
-            ->assertJsonPath('data.quantity', '1.750')->assertJsonPath('data.consumed_by.id', $actor->id)
+            'idempotency_key' => (string) Str::uuid(), 'material_id' => $material->id, 'quantity' => '1.750', 'work_order_process_step_id' => $order->fresh()->current_process_step_id, 'notes' => '  Aplicado ', 'external_reference' => 'EXT-1'])->assertCreated()
+            ->assertJsonPath('data.quantity', '1.750000')->assertJsonPath('data.consumed_by.id', $actor->id)
             ->assertJsonPath('data.unit.vin', $order->diagnosis->unit->vin)->assertJsonPath('data.process_step.process_id', $process->id)->json('data.id');
-        $material->update(['unit' => 'pza', 'name' => 'Otro', 'is_active' => false]);
-        $this->getJson('/api/material-consumptions?vin='.$order->diagnosis->unit->vin)->assertOk()->assertJsonPath('data.0.id', $id)->assertJsonPath('data.0.material.unit', 'kg');
+        $material->update(['name' => 'Otro', 'is_active' => false]);
+        $this->getJson('/api/material-consumptions?vin='.$order->diagnosis->unit->vin)->assertOk()->assertJsonPath('data.0.id', $id)->assertJsonPath('data.0.material.unit', 'Kg');
         $this->getJson('/api/work-orders/'.$order->id.'/material-consumptions')->assertOk()->assertJsonPath('data.0.notes', 'Aplicado');
         $this->getJson('/api/material-consumptions?search='.$order->diagnosis->unit->vin)->assertOk()->assertJsonPath('meta.total', 1);
         $this->assertNotNull(MaterialConsumption::findOrFail($id)->consumed_at);
@@ -48,7 +50,7 @@ class MaterialOperationsTest extends OperationsTestCase
 
     public static function invalidQuantities(): array
     {
-        return [[0], [-1], ['0.000'], ['1.2345'], ['1000000000'], ['NaN'], [null]];
+        return [[0], [-1], ['0.000'], ['1.2345678'], ['1000000000000'], ['NaN'], [null]];
     }
 
     #[DataProvider('invalidQuantities')]
@@ -57,7 +59,7 @@ class MaterialOperationsTest extends OperationsTestCase
         $this->administrator();
         $order = WorkOrder::factory()->create();
         $material = Material::factory()->create();
-        $this->postJson('/api/work-orders/'.$order->id.'/material-consumptions', ['material_id' => $material->id, 'quantity' => $quantity])->assertUnprocessable()->assertJsonValidationErrors('quantity');
+        $this->postJson('/api/work-orders/'.$order->id.'/material-consumptions', ['material_id' => $material->id, 'quantity' => $quantity, 'idempotency_key' => (string) Str::uuid()])->assertUnprocessable()->assertJsonValidationErrors('quantity');
     }
 
     public function test_inactive_terminal_cross_parent_and_forged_metadata_are_rejected(): void
@@ -66,9 +68,10 @@ class MaterialOperationsTest extends OperationsTestCase
         $order = WorkOrder::factory()->create();
         $material = Material::factory()->create(['is_active' => false]);
         $url = '/api/work-orders/'.$order->id.'/material-consumptions';
-        $payload = ['material_id' => $material->id, 'quantity' => 1];
+        $payload = ['material_id' => $material->id, 'quantity' => 1, 'idempotency_key' => (string) Str::uuid()];
         $this->postJson($url, $payload)->assertUnprocessable()->assertJsonValidationErrors('material_id');
         $material->update(['is_active' => true]);
+        $this->fundMaterial($material, '5');
         $other = WorkOrderProcessStep::factory()->create();
         $this->postJson($url, $payload + ['work_order_process_step_id' => $other->id])->assertUnprocessable();
         foreach (['work_order_id', 'unit_id', 'vin', 'consumed_by', 'consumed_at', 'process_code'] as $field) {

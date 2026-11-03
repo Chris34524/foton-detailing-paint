@@ -8,6 +8,7 @@ use App\Models\Material;
 use App\Models\User;
 use App\Models\WorkOrder;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 class OperationsAuthorizationTest extends OperationsTestCase
@@ -52,7 +53,8 @@ class OperationsAuthorizationTest extends OperationsTestCase
         $this->getJson('/api/materials')->assertOk();
         $order = WorkOrder::factory()->create();
         $material = Material::factory()->create();
-        $this->postJson('/api/work-orders/'.$order->id.'/material-consumptions', ['material_id' => $material->id, 'quantity' => 1])->assertCreated();
+        $this->fundMaterial($material, '5');
+        $this->postJson('/api/work-orders/'.$order->id.'/material-consumptions', ['material_id' => $material->id, 'quantity' => 1, 'idempotency_key' => (string) Str::uuid()])->assertCreated();
         $this->postJson('/api/materials', ['code' => 'NO', 'name' => 'No', 'unit' => 'kg'])->assertForbidden();
         $this->getJson('/api/work-orders/'.$order->id.'/process-flow')->assertOk();
         Auth::forgetGuards();

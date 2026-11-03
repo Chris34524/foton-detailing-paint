@@ -14,6 +14,8 @@ class MaterialConsumptionResource extends JsonResource
         return ['id' => $this->id, 'material' => ['id' => $this->material_id, 'code' => $this->material_code_snapshot, 'name' => $this->material_name_snapshot, 'unit' => $this->unit_snapshot],
             'work_order_id' => $this->work_order_id, 'unit' => ['id' => $unit->id, 'vin' => $unit->vin, 'model' => $unit->model],
             'process_step' => $this->processStep === null ? null : new WorkOrderProcessStepResource($this->processStep),
+            'inventory_tracking' => $this->inventory_movement_id === null ? 'legacy_untracked' : 'ledger',
+            'inventory_movement' => $this->whenLoaded('inventoryMovement', fn () => new InventoryMovementResource($this->inventoryMovement)),
             'quantity' => $this->quantity, 'notes' => $this->notes, 'external_reference' => $this->external_reference,
             'consumed_by' => $this->consumedBy === null ? null : new OperatorResource($this->consumedBy),
             'consumed_at' => $this->consumed_at->toISOString(), 'created_at' => $this->created_at->toISOString(), 'updated_at' => $this->updated_at->toISOString()];

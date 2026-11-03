@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\DiagnosisController;
 use App\Http\Controllers\Api\DiagnosisMetaController;
 use App\Http\Controllers\Api\InspectionChecklistController;
 use App\Http\Controllers\Api\InspectionController;
+use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\MaterialConsumptionController;
 use App\Http\Controllers\Api\MaterialController;
 use App\Http\Controllers\Api\ProcessController;
@@ -95,4 +96,15 @@ Route::middleware('auth:sanctum')->scopeBindings()->group(function (): void {
     Route::patch('/inspections/{inspection}', [InspectionController::class, 'update'])->whereNumber('inspection')->name('inspections.update');
     Route::post('/inspections/{inspection}/complete', [InspectionController::class, 'complete'])->whereNumber('inspection')->name('inspections.complete');
     Route::post('/inspections/{inspection}/release', [InspectionController::class, 'release'])->whereNumber('inspection')->name('inspections.release');
+});
+
+Route::middleware('auth:sanctum')->group(function (): void {
+    Route::get('/materials/meta', [InventoryController::class, 'meta'])->name('materials.meta');
+    Route::get('/materials/inventory/dashboard', [InventoryController::class, 'dashboard'])->name('inventory.dashboard');
+    Route::get('/materials/{material}/stock', [InventoryController::class, 'stock'])->whereNumber('material')->name('inventory.stock');
+    Route::get('/materials/{material}/quantity-preview', [InventoryController::class, 'preview'])->whereNumber('material')->name('inventory.quantity-preview');
+    Route::get('/materials/{material}/movements', [InventoryController::class, 'index'])->whereNumber('material')->name('inventory.material-movements');
+    Route::get('/inventory-movements', [InventoryController::class, 'index'])->name('inventory-movements.index');
+    Route::post('/inventory-movements', [InventoryController::class, 'store'])->name('inventory-movements.store');
+    Route::get('/inventory-movements/{movement}', [InventoryController::class, 'show'])->whereNumber('movement')->name('inventory-movements.show');
 });

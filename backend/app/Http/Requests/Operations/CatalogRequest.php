@@ -2,9 +2,11 @@
 
 namespace App\Http\Requests\Operations;
 
+use App\Enums\MaterialUnit;
 use App\Models\InspectionChecklist;
 use App\Models\Material;
 use App\Models\Process;
+use App\Rules\InventoryDecimal;
 use App\Rules\PlainText;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -39,7 +41,14 @@ class CatalogRequest extends OperationsRequest
             $rules['code'] = [$required, 'required', 'string', 'max:80', 'regex:/^[A-Z0-9][A-Z0-9_-]*$/', Rule::unique($table, 'code')->ignore($record?->id)];
         }
         if ($class === Material::class) {
-            $rules['unit'] = [$required, 'required', 'string', 'max:24', 'regex:/^[\pL][\pL0-9.\/-]*$/u'];
+            $rules['unit'] = [$required, 'required', Rule::enum(MaterialUnit::class)];
+            foreach (['minimum_stock', 'maximum_stock'] as $field) {
+                $rules[$field] = ['sometimes', 'nullable', new InventoryDecimal(false)];
+            }
+            foreach (['location', 'supplier'] as $field) {
+                $rules[$field] = ['sometimes', 'nullable', 'string', 'max:160', new PlainText];
+            }
+            $rules['notes'] = ['sometimes', 'nullable', 'string', 'max:5000', new PlainText];
             $rules['warehouse_reference'] = ['sometimes', 'nullable', 'string', 'max:120', new PlainText];
         }
         $this->rejectUnknown(array_keys($rules));

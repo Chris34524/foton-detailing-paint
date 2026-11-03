@@ -19,7 +19,7 @@ class MaterialConsumptionController extends Controller
 {
     private function relations(): array
     {
-        return ['workOrder.diagnosis.unit', 'processStep', 'consumedBy'];
+        return ['workOrder.diagnosis.unit', 'processStep', 'consumedBy', 'inventoryMovement.performedBy'];
     }
 
     public function index(OperationsIndexRequest $request, ?WorkOrder $workOrder = null): AnonymousResourceCollection
@@ -52,6 +52,9 @@ class MaterialConsumptionController extends Controller
 
     public function store(MaterialConsumptionRequest $request, WorkOrder $workOrder, MaterialConsumptionService $service): JsonResponse
     {
-        return (new MaterialConsumptionResource($service->consume($workOrder, $request->user(), $request->validated())->load($this->relations())))->response()->setStatusCode(201);
+        $result = $service->consume($workOrder, $request->user(), $request->validated());
+
+        return (new MaterialConsumptionResource($result['consumption']->load($this->relations())))
+            ->additional(['idempotent_replay' => $result['replayed']])->response()->setStatusCode($result['replayed'] ? 200 : 201);
     }
 }

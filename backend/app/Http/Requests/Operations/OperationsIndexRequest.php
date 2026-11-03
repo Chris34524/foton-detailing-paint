@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Operations;
 
+use App\Enums\InventoryStockStatus;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -30,6 +31,7 @@ class OperationsIndexRequest extends OperationsRequest
             'sort' => ['sometimes', Rule::in(['created_at', 'updated_at', 'code', 'name', 'id', 'consumed_at'])],
             'direction' => ['sometimes', Rule::in(['asc', 'desc'])],
             'updated_since' => ['sometimes', 'date'], 'work_order_id' => ['sometimes', 'integer', 'min:1'],
+            'stock_status' => ['sometimes', Rule::enum(InventoryStockStatus::class)],
             'status' => ['sometimes', Rule::in(['draft', 'completed'])]];
     }
 }
