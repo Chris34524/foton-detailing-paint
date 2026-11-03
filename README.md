@@ -205,27 +205,44 @@ New Work Orders snapshot the configured sequence into `WorkOrderProcessStep`, pr
 
 `/processes` provides catalog search, pagination, activation/editing and explicit sequence ordering. Work Order detail displays the current/next process and historical sequence. No process advancement, activity, pause/resume, duration or timer API is implemented; Phase 7 can later attach timing records to the existing step IDs.
 
-### Materials and consumption
+### Materials, inventory and consumption
 
-`Material` has a unique uppercase code, name, plain-text description, normalized unit string and optional 120-character `warehouse_reference`. Unit strings are trimmed and lowercased, with `L` as the normalized litre spelling. No unit taxonomy or MySQL ENUM is introduced.
+`Material` retains its unique uppercase code, name, description, active flag and optional `warehouse_reference`. Inventory adds nullable `minimum_stock` / `maximum_stock`, physical `location`, `supplier` and notes. Parameters are nonnegative and maximum must be at least minimum when both exist. Location belongs to the component; destination belongs to a movement. There is no directly editable stock field or material deletion API. The canonical unit cannot change after any inventory or consumption history.
 
-Consumption uses `DECIMAL(12,3)` with positive quantities up to 999999999.999 and at most three fractional digits; excess precision is rejected rather than silently rounded. Only active materials and non-terminal Work Orders are accepted. The optional process-step ID must belong to that Work Order; legacy/general consumption may omit it. The server owns the Work Order, actor and consumption timestamp. Material code/name/unit are snapshotted so later catalog edits cannot change the historical meaning of a quantity.
+Backend metadata defines the eight canonical units `Kg, L, ml, Pza, gr, cm, mts, hojas`, movement types and destinations `Pintura 1, Pintura 2, Lavado`. Compatible conversions use exact BCMath arithmetic: L↔ml and Kg↔gr at 1000, mts↔cm at 100, and identity conversions for Pza/hojas. All inventory quantities use `DECIMAL(18,6)`, with at most 12 integer and 6 fractional digits. Send quantities as decimal JSON strings (integers are also accepted); floating-point JSON numbers, exponential notation, incompatible dimensions, overflow and conversions requiring more than six canonical decimals are rejected rather than rounded.
 
-VIN is derived through consumption → Work Order → Diagnosis → Unit; neither VIN nor unit_id is duplicated in consumption storage. There is no consumption edit/delete workflow or inventory balance mutation.
+`InventoryMovement` is the immutable stock ledger. `InventoryBalance` is its reconcilable query cache, never an independent source of stock. A unique opening movement can precede all other movements; entries and positive adjustments increase stock, exits and negative adjustments decrease it. Adjustments require a reason. Confirmed movements preserve original quantity/unit, converted/signed quantity, material snapshots, stock before/after, session actor and server time. Corrections use compensating movements; there are no PATCH/DELETE movement endpoints.
+
+A single domain service authorizes, locks the Work Order when applicable, locks the Material/balance, converts, rejects negative stock, allocates the folio and commits the movement/balance/optional consumption together. A drifted or missing nonzero balance fails closed until reconciliation. Folios are server-generated `LDR-DP-0001`, increasing beyond four digits when necessary, protected by a locked transactional sequence and unique database constraint. No MAX+1 or client folio is accepted. Rolled-back allocations are not committed; committed folios are never renumbered/reused. Any future sequence gaps must be retained, not filled by reusing historical numbers.
+
+Every movement and Work Order consumption POST requires a UUID `idempotency_key`. Retry the same intent with the same key: HTTP 201 creates it, HTTP 200 returns the existing receipt with `idempotent_replay=true`. Reusing a key with another payload, actor or context returns 422. React retains the key for retries, including uncertain network/5xx outcomes. Confirmation recalculates the backend preview under locks; preview does not reserve stock.
+
+Stock is opening + entries + positive adjustments − exits − negative adjustments. States use this precedence: missing minimum or maximum → SIN PARÁMETROS; below minimum → CRÍTICO; above maximum → SOBRESTOCK; minimum through 120% of minimum inclusive → REORDEN; otherwise OK. Percentage is stock/max × 100 when max > 0, otherwise null. The backend supplies labels and recommended actions; React does not calculate stock or conversion arithmetic.
 
 | API endpoint | Authorization |
 | --- | --- |
 | `GET /api/materials`, `GET /api/materials/{material}` | `materials.view` |
 | `POST /api/materials`, `PATCH /api/materials/{material}` | `materials.manage` |
-| `GET /api/material-consumptions` | `materials.view` |
-| `GET /api/work-orders/{workOrder}/material-consumptions` | `materials.view` |
+| `GET /api/materials/meta`, `GET /api/materials/inventory/dashboard` | `materials.view` |
+| `GET /api/materials/{material}/stock`, `GET /api/materials/{material}/movements` | `materials.view` |
+| `GET /api/materials/{material}/quantity-preview` | `materials.view` |
+| `GET /api/inventory-movements`, `GET /api/inventory-movements/{movement}` | `materials.view` |
+| `POST /api/inventory-movements` | `materials.manage`, or `materials.consume` for exits only |
+| `GET /api/material-consumptions`, `GET /api/work-orders/{workOrder}/material-consumptions` | `materials.view` |
 | `POST /api/work-orders/{workOrder}/material-consumptions` | `materials.consume` plus Work Order visibility |
-| `GET /api/integrations/warehouse/v1/materials` | `materials.manage` |
-| `GET /api/integrations/warehouse/v1/material-consumptions` | `materials.manage` |
+| `GET /api/integrations/warehouse/v1/materials`, `GET /api/integrations/warehouse/v1/material-consumptions` | `materials.manage` |
 
-Warehouse v1 responses expose `contract_version: "1"`, stable resource IDs, references, `data`, pagination metadata and timestamps. Both accept `updated_since`, `page` and `per_page`; the timestamp filter is inclusive and normalized to UTC. Consumers should upsert by stable ID and tolerate repeated boundary records. `MaterialConsumption.external_reference` is optional metadata, not a stock-movement identifier generated by a Warehouse call. Contracts currently require application session authentication; machine authentication, production Warehouse connectivity, stock requests and inventory synchronization are deferred.
+Movement POST fields: `material_id, movement_type, quantity_original, unit_original, area_destination?, notes?, idempotency_key`. Types are `opening_balance, entry, exit, adjustment_in, adjustment_out`. Movement lists filter by material, type, destination, code/name/folio search and inclusive UTC calendar dates `date_from/date_to`. Sorting is allowlisted; pagination defaults to 20, maximum 100. Material lists additionally filter by `stock_status`, activity and canonical unit.
 
-`/materials` manages the catalog; `/materials/consumptions` searches history by VIN/material. Work Order detail displays paginated consumption history and allows authorized users to record quantities against snapshot steps, defaulting to the current step when initialized.
+Consumption accepts `material_id, quantity, unit_original?, work_order_process_step_id?, area_destination?, notes?, external_reference?, idempotency_key`. An omitted original unit uses the material canonical unit. Only active materials and non-terminal orders are accepted. Optional process steps must belong to the order. Exactly one linked inventory exit and one MaterialConsumption are persisted atomically, protected by a unique movement link. Consumption stores canonical quantity; its movement preserves the original input. Stock counts the movement once and never separately subtracts consumption. VIN remains derived through Work Order → Diagnosis → Unit, without an editable duplicate VIN. Material use does not change inspection/release status.
+
+Warehouse v1 retains `contract_version: "1"`, stable IDs, references, pagination and inclusive UTC `updated_since`. Material resources now include calculated stock/parameters/status; movements touch the material timestamp so incremental consumers receive balance changes. Consumption includes its linked movement or explicit `inventory_tracking=legacy_untracked`. Consumers should upsert by stable ID and tolerate repeated boundary records. These are authenticated read contracts only: external connectivity, machine authentication and stock synchronization remain deferred.
+
+The additive inventory migration normalizes known legacy unit aliases and widens consumption precision. Existing consumption snapshots remain unchanged with a null movement link and the legacy label. It does not fabricate historical stock, movements or spreadsheet sample data. Establish verified real opening stock explicitly; legacy consumption must not be deducted again.
+
+Reconcile the cache using `docker compose exec backend php artisan inventory:reconcile` (nonzero exit on mismatch). Scope with `--material=ID`; add `--repair` to rebuild cached quantity and component totals from the exact immutable ledger, without adding movements. Back up database history before an upgrade. Rolling back inventory removes the new ledger/schema and narrows quantity precision; it is not an operational correction workflow.
+
+The SPA provides `/materials` inventory/catalog, `/materials/movements`, `/materials/movements/new`, immutable movement detail, `/materials/inventory/dashboard` and `/materials/consumptions`. Inventory has server search/status filters; movements have component/date/type/destination filters. The dashboard shows all five states and action alerts, refreshed after mutations and on window focus. Movement and Work Order forms display read-only backend equivalence, compatible units and available stock, then the confirmed server folio/actor/time/balance. Permission-specific controls retain authoritative backend policies.
 
 ### Inspection, automatic rework and release
 
