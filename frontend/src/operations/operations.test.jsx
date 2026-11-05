@@ -50,7 +50,7 @@ describe('operations permissions and data states', () => {
     expect(within(nav).getByRole('link', { name: 'Materiales' })).toBeInTheDocument()
     expect(within(nav).getByRole('link', { name: 'Inspección' })).toBeInTheDocument()
   })
-  it.each(['/processes','/materials','/materials/consumptions','/inspections','/inspections/100','/inspections/new','/inspection/checklists','/work-orders/15/inspections/new'])('guards direct access to %s', async (path) => {
+  it.each(['/processes','/materials','/inspections','/inspections/100','/inspections/new','/inspection/checklists','/work-orders/15/inspections/new'])('guards direct access to %s', async (path) => {
     authService.currentUser.mockResolvedValue({ ...user, permissions: [] })
     renderApp(path)
     expect(await screen.findByRole('heading', { name: 'Acceso denegado' })).toBeInTheDocument()
@@ -184,14 +184,16 @@ describe('materials and checklist administration', () => {
     expect(screen.queryByRole('button', { name: 'Registrar consumo' })).not.toBeInTheDocument()
     expect(await screen.findByText('1.750 Kg')).toBeInTheDocument()
   })
-  it('filters global consumption by VIN and displays the process snapshot', async () => {
-    const clicker = userEvent.setup()
+  it('hides standalone consumptions while retaining Work Order consumption', async () => {
+    renderApp('/materials')
+    const nav = await screen.findByRole('navigation', { name: 'Navegación de materiales' })
+    expect(within(nav).queryByRole('link', { name: 'Consumos' })).not.toBeInTheDocument()
+  })
+  it('does not render the standalone consumptions view from its former URL', async () => {
     renderApp('/materials/consumptions')
-    expect(await screen.findByText(order.unit.vin)).toBeInTheDocument()
-    expect(screen.getByText('DETAIL · Detallado')).toBeInTheDocument()
-    await clicker.type(screen.getByLabelText('VIN exacto'), order.unit.vin)
-    await clicker.click(screen.getByRole('button', { name: 'Buscar', exact: true }))
-    await waitFor(() => expect(operationsService.consumptions).toHaveBeenLastCalledWith({ vin: order.unit.vin }, null, expect.anything()))
+    expect(await screen.findByRole('heading', { name: /Bienvenido,/ })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Consumos de materiales' })).not.toBeInTheDocument()
+    expect(operationsService.consumptions).not.toHaveBeenCalled()
   })
   it('creates and configures a checklist item', async () => {
     const clicker = userEvent.setup()
