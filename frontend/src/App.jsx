@@ -21,7 +21,6 @@ import InventoryMovementsPage from './pages/InventoryMovementsPage'
 import InventoryMovementCreatePage from './pages/InventoryMovementCreatePage'
 import InventoryMovementDetailPage from './pages/InventoryMovementDetailPage'
 import InventoryDashboardPage from './pages/InventoryDashboardPage'
-import MaterialConsumptionsPage from './pages/MaterialConsumptionsPage'
 import InspectionsPage from './pages/InspectionsPage'
 import InspectionCreatePage from './pages/InspectionCreatePage'
 import InspectionDetailPage from './pages/InspectionDetailPage'
@@ -65,7 +64,6 @@ export function AppRoutes() {
             <Route path="/materials/movements/new" element={<InventoryMovementCreatePage />} />
             <Route path="/materials/movements/:movementId" element={<InventoryMovementDetailPage />} />
             <Route path="/materials/inventory/dashboard" element={<InventoryDashboardPage />} />
-            <Route path="/materials/consumptions" element={<MaterialConsumptionsPage />} />
           </Route>
           <Route element={<PermissionRoute permission={operationsPermissions.inspectionView} />}>
             <Route path="/inspections" element={<InspectionsPage />} />
