@@ -108,11 +108,11 @@ class InventoryMovementService
                 if (bccomp($total, MaterialQuantityConverter::MAX, 6) > 0) {
                     throw ValidationException::withMessages(['quantity_original' => 'El total acumulado supera el límite de inventario.']);
                 }
-                $counter = DB::table('inventory_sequences')->where('name', 'movement_folio')->lockForUpdate()->first();
+                $counter = DB::table('inventory_sequences')->where('name', 'movement_folio_v2')->lockForUpdate()->first();
                 $number = (string) $counter->next_value;
-                DB::table('inventory_sequences')->where('name', 'movement_folio')->update(['next_value' => bcadd($number, '1', 0)]);
+                DB::table('inventory_sequences')->where('name', 'movement_folio_v2')->update(['next_value' => bcadd($number, '1', 0)]);
                 $movement = new InventoryMovement;
-                $movement->folio = 'LDR-DP-'.str_pad($number, 4, '0', STR_PAD_LEFT);
+                $movement->folio = 'MOV-'.str_pad($number, 4, '0', STR_PAD_LEFT);
                 $movement->material_id = $material->id;
                 $movement->movement_type = $type;
                 $movement->quantity_original = $quantity;
