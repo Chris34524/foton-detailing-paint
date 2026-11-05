@@ -13,7 +13,7 @@ export default function AuthenticatedLayout() {
   const menuButton = useRef(null)
   const content = useRef(null)
   const navigation = useRef(null)
-  const visibleModules = workspaceModules.filter((module) => can(module.permission))
+  const visibleModules = workspaceModules.filter((module) => module.to === '/materials' && can(module.permission))
   const section = workspaceSection(pathname)
   useEffect(() => { document.title = section + ' · FOTON' }, [section])
   useEffect(() => { if (menuOpen) navigation.current?.querySelector('a')?.focus() }, [menuOpen])
@@ -34,7 +34,7 @@ export default function AuthenticatedLayout() {
     <aside className="app-sidebar" id="workspace-navigation" ref={navigation}>
       <div className="sidebar-brand"><span className="brand-mark" aria-hidden="true">F</span><p className="brand">FOTON <span>Detailing &amp; Paint</span></p></div>
       <nav aria-label="Navegación principal">
-        <NavLink to="/dashboard" onClick={() => closeMenu(true)}><AppIcon name="dashboard" /><span>Dashboard</span></NavLink>
+        
         {['Operación', 'Recursos y calidad'].map((group) => visibleModules.some((module) => module.group === group) && <div className="navigation-group" key={group}>
           <p className="navigation-label">{group}</p>
           {visibleModules.filter((module) => module.group === group).map((module) => <Link key={module.to} to={module.to} aria-current={section === module.label ? "page" : undefined}
