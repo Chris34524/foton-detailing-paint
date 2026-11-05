@@ -8,17 +8,21 @@ import AuthProvider from './AuthProvider'
 import authService from './authService'
 import useAuth from './useAuth'
 import api from '../services/api'
+import operationsService from '../operations/operationsService'
+import inventoryService from '../operations/inventoryService'
 
 vi.mock('./authService', () => ({
   default: { currentUser: vi.fn(), login: vi.fn(), logout: vi.fn() },
 }))
+vi.mock('../operations/operationsService', () => ({ default: { catalog: vi.fn() } }))
+vi.mock('../operations/inventoryService', () => ({ default: { meta: vi.fn() } }))
 
 const currentUser = {
   id: 1,
   name: 'Development User',
   email: 'developer@foton-detailing.local',
   roles: ['operator'],
-  permissions: ['units.view', 'materials.consume'],
+  permissions: ['units.view', 'materials.view', 'materials.consume'],
 }
 
 const httpError = (status, data = {}) => ({ response: { status, data } })
@@ -42,6 +46,8 @@ async function submitLogin() {
 beforeEach(() => {
   vi.resetAllMocks()
   authService.currentUser.mockRejectedValue(httpError(401))
+  operationsService.catalog.mockResolvedValue({ data: [], meta: { current_page: 1, last_page: 1, total: 0 } })
+  inventoryService.meta.mockResolvedValue({ units: [], stock_statuses: [] })
 })
 
 describe('session authentication', () => {
@@ -77,7 +83,7 @@ describe('session authentication', () => {
     authService.login.mockResolvedValue(currentUser)
     renderApp()
     await submitLogin()
-    expect(await screen.findByRole('heading', { name: 'Bienvenido, Development User' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Materiales' })).toBeInTheDocument()
     expect(screen.getByText('Operador')).toBeInTheDocument()
     expect(authService.login).toHaveBeenCalledWith({ email: currentUser.email, password: 'example-password' })
   })
@@ -118,10 +124,10 @@ describe('session authentication', () => {
     expect(screen.getByText(currentUser.email)).toBeInTheDocument()
   })
 
-  it('redirects an authenticated user visiting login to the dashboard', async () => {
+  it('redirects an authenticated user visiting login to Materials', async () => {
     authService.currentUser.mockResolvedValue(currentUser)
     renderApp('/login')
-    expect(await screen.findByRole('heading', { name: 'Bienvenido, Development User' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Materiales' })).toBeInTheDocument()
     expect(screen.queryByLabelText('Contraseña')).not.toBeInTheDocument()
   })
 
