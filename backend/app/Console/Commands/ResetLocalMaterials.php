@@ -72,7 +72,7 @@ class ResetLocalMaterials extends Command
                 foreach ($tables as $table) {
                     DB::table($table)->delete();
                 }
-                DB::table('inventory_sequences')->where('name', 'movement_folio')->update(['next_value' => 1]);
+                DB::table('inventory_sequences')->whereIn('name', ['movement_folio', 'movement_folio_v2', 'product_code'])->update(['next_value' => 1]);
             }, 3);
         } catch (Throwable $error) {
             $this->error('No se completó la limpieza; se preservó la integridad transaccional.');
