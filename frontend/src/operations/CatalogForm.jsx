@@ -9,7 +9,7 @@ export default function CatalogForm({ kind, record = null, materialMeta = null, 
     if (busy) return
     const fields = new FormData(event.currentTarget)
     const payload = { name: fields.get('name').trim(), description: fields.get('description').trim() || null, is_active: fields.has('is_active') }
-    if (kind !== 'checklists') payload.code = fields.get('code').trim()
+    if (kind === 'processes') payload.code = fields.get('code').trim()
     if (kind === 'materials') {
       payload.unit = record?.has_inventory_history ? record.unit : fields.get('unit')
       payload.warehouse_reference = fields.get('warehouse_reference').trim() || null
@@ -23,7 +23,8 @@ export default function CatalogForm({ kind, record = null, materialMeta = null, 
   return <form className="operations-form catalog-editor" onSubmit={submit} aria-label={record ? 'Editar registro' : 'Crear registro'}>
     <div className="editor-heading"><div><p className="eyebrow">CATÁLOGO</p><h2>{record ? 'Editar registro' : 'Crear registro'}</h2></div><span className="muted">* Obligatorio</span></div>
     <fieldset disabled={busy}><legend>Identificación</legend><div className="form-grid">
-      {kind !== 'checklists' && <div className="form-field"><label htmlFor="catalog-code" data-required>Código</label><input id="catalog-code" name="code" maxLength={80} defaultValue={record?.code || ''} required /></div>}
+      {kind === 'processes' && <div className="form-field"><label htmlFor="catalog-code" data-required>Código</label><input id="catalog-code" name="code" maxLength={80} defaultValue={record?.code || ''} required /></div>}
+      {kind === 'materials' && <div className="form-field"><label>Código de inventario</label><p className="field-hint">{record?.code || 'Automático al guardar: PROD-XXX'}</p></div>}
       <div className="form-field"><label htmlFor="catalog-name" data-required>Nombre</label><input id="catalog-name" name="name" maxLength={160} defaultValue={record?.name || ''} required /></div>
       <div className="form-field form-span"><label htmlFor="catalog-description">Descripción</label><textarea id="catalog-description" name="description" rows={3} maxLength={5000} defaultValue={record?.description || ''} /></div>
     </div></fieldset>
