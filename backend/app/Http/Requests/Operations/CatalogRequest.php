@@ -36,10 +36,10 @@ class CatalogRequest extends OperationsRequest
         $required = $record ? 'sometimes' : 'required';
         $rules = ['name' => [$required, 'required', 'string', 'max:160', new PlainText],
             'description' => ['sometimes', 'nullable', 'string', 'max:5000', new PlainText], 'is_active' => ['sometimes', 'boolean']];
-        if ($class !== InspectionChecklist::class) {
-            $table = (new $class)->getTable();
-            $rules['code'] = [$required, 'required', 'string', 'max:80', 'regex:/^[A-Z0-9][A-Z0-9_-]*$/', Rule::unique($table, 'code')->ignore($record?->id)];
+        if ($class === Process::class) {
+            $rules['code'] = [$required, 'required', 'string', 'max:80', 'regex:/^[A-Z0-9][A-Z0-9_-]*$/', Rule::unique('processes', 'code')->ignore($record?->id)];
         }
+        // Los códigos de materiales son exclusivos del servidor, tanto en alta como en edición.
         if ($class === Material::class) {
             $rules['unit'] = [$required, 'required', Rule::enum(MaterialUnit::class)];
             foreach (['minimum_stock', 'maximum_stock'] as $field) {
