@@ -34,7 +34,7 @@ describe('work order navigation, listing and queue', () => {
   it('shows Trabajos navigation and keeps queue inside the module', async () => {
     renderApp()
     await screen.findByRole('heading', { name: 'Órdenes de trabajo' })
-    expect(within(screen.getByRole('navigation', { name: 'Navegación principal' })).getByRole('link', { name: 'Trabajos' })).toHaveAttribute('href', '/work-orders')
+    expect(within(screen.getByRole('navigation', { name: 'Navegación principal' })).queryByRole('link', { name: 'Trabajos' })).not.toBeInTheDocument()
     expect(within(screen.getByRole('navigation', { name: 'Navegación de trabajos' })).getByRole('link', { name: 'Cola de trabajos' })).toHaveAttribute('href', '/work-orders/queue')
   })
   it('hides navigation without view permission', async () => {
