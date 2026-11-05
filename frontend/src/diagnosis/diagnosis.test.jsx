@@ -38,7 +38,7 @@ describe('diagnosis navigation, lists and permissions', () => {
     renderApp()
     await screen.findByRole('heading', { name: 'Diagnósticos' })
     const navigation = screen.getByRole('navigation', { name: 'Navegación principal' })
-    expect(within(navigation).getByRole('link', { name: 'Diagnóstico' })).toHaveAttribute('href', '/diagnoses')
+    expect(within(navigation).queryByRole('link', { name: 'Diagnóstico' })).not.toBeInTheDocument()
     expect(within(navigation).queryByRole('link', { name: 'Catálogo de tipos' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Catálogo de tipos' })).toBeInTheDocument()
   })

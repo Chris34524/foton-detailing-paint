@@ -69,7 +69,7 @@ describe('unit authorization and list', () => {
     expect(screen.getByText('Registrada', { selector: '.status-badge' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Registrar unidad' })).toHaveAttribute('href', '/units/new')
     expect(screen.getByRole('option', { name: 'En proceso' })).toHaveValue('in_process')
-    expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument()
   })
   it('shows loading until the API returns', async () => {
     let finish
@@ -261,8 +261,8 @@ describe('unit detail and updates', () => {
     let finish
     unitService.list.mockReturnValue(new Promise((resolve) => { finish = resolve }))
     renderApp()
-    await userEvent.click(await screen.findByRole('link', { name: 'Dashboard' }))
-    await screen.findByRole('heading', { name: 'Bienvenido, Development User' })
+    await userEvent.click(await screen.findByRole('link', { name: 'Registrar unidad' }))
+    await screen.findByRole('heading', { name: 'Registrar unidad' })
     await act(async () => finish(collection()))
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
   })
