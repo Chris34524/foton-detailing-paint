@@ -28,7 +28,7 @@ class InventoryQueriesTest extends OperationsTestCase
     public function test_min_max_validation_and_unit_lock_preserve_history(): void
     {
         $this->administrator();
-        $payload = ['code' => 'PARAM', 'name' => 'Material', 'unit' => ' kg ', 'minimum_stock' => '5', 'maximum_stock' => '10', 'location' => ' Laboratorio de Pintura ', 'supplier' => ' Proveedor ', 'notes' => ' Observaciones '];
+        $payload = ['name' => 'Material', 'unit' => ' kg ', 'minimum_stock' => '5', 'maximum_stock' => '10', 'location' => ' Laboratorio de Pintura ', 'supplier' => ' Proveedor ', 'notes' => ' Observaciones '];
         $id = $this->postJson('/api/materials', $payload)->assertCreated()->assertJsonPath('data.unit', 'Kg')
             ->assertJsonPath('data.location', 'Laboratorio de Pintura')->assertJsonPath('data.stock_actual', '0.000000')->json('data.id');
         $this->patchJson('/api/materials/'.$id, ['maximum_stock' => '4'])->assertUnprocessable()->assertJsonValidationErrors('maximum_stock');
@@ -37,7 +37,7 @@ class InventoryQueriesTest extends OperationsTestCase
         foreach (['stock_actual', 'initial_stock', 'entries', 'quantity', 'area'] as $field) {
             $this->patchJson('/api/materials/'.$id, [$field => '5'])->assertUnprocessable();
         }
-        $this->postJson('/api/materials', array_replace($payload, ['code' => 'UNIT', 'unit' => 'toneladas']))->assertUnprocessable();
+        $this->postJson('/api/materials', array_replace($payload, ['unit' => 'toneladas']))->assertUnprocessable();
         $material = Material::findOrFail($id);
         $this->fundMaterial($material, '5');
         $this->patchJson('/api/materials/'.$id, ['unit' => 'gr'])->assertUnprocessable()->assertJsonValidationErrors('unit');
