@@ -42,7 +42,7 @@ class InventoryConsumptionTest extends OperationsTestCase
         $material = Material::factory()->create();
         $this->fundMaterial($material, '5');
         $order = WorkOrder::factory()->create();
-        $before = DB::table('inventory_sequences')->where('name', 'movement_folio')->value('next_value');
+        $before = DB::table('inventory_sequences')->where('name', 'movement_folio_v2')->value('next_value');
         Event::listen('eloquent.creating: '.MaterialConsumption::class, function (): never {
             throw new \RuntimeException('Simulated consumption failure');
         });
@@ -51,7 +51,7 @@ class InventoryConsumptionTest extends OperationsTestCase
         $this->assertDatabaseCount('material_consumptions', 0);
         $this->assertDatabaseCount('inventory_movements', 1);
         $this->assertSame('5.000000', $material->inventoryBalance->quantity);
-        $this->assertEquals($before, DB::table('inventory_sequences')->where('name', 'movement_folio')->value('next_value'));
+        $this->assertEquals($before, DB::table('inventory_sequences')->where('name', 'movement_folio_v2')->value('next_value'));
     }
 
     public function test_consumption_rejects_other_order_step_insufficient_stock_and_forged_fields(): void
