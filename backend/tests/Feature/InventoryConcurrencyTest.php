@@ -26,7 +26,7 @@ class InventoryConcurrencyTest extends TestCase
         $actor = User::factory()->create();
         $actor->givePermissionTo($permission);
         $materials = Material::factory()->count(2)->create(['unit' => 'L', 'created_by' => $actor->id]);
-        $counter = DB::table('inventory_sequences')->where('name', 'movement_folio')->value('next_value');
+        $counter = DB::table('inventory_sequences')->where('name', 'movement_folio_v2')->value('next_value');
         try {
             app(InventoryMovementService::class)->confirm($actor, [
                 'material_id' => $materials[0]->id, 'movement_type' => 'opening_balance',
@@ -67,7 +67,7 @@ class InventoryConcurrencyTest extends TestCase
             $this->assertSame(['created', 'created'], array_column($entries, 'status'));
             $this->assertNotSame($entries[0]['folio'], $entries[1]['folio']);
             $numbers = $materials->flatMap(fn (Material $material) => $material->inventoryMovements()->pluck('folio'))
-                ->map(fn (string $folio): int => (int) substr($folio, 7))->sort()->values()->all();
+                ->map(fn (string $folio): int => (int) substr($folio, 4))->sort()->values()->all();
             $this->assertSame(range((int) $counter, (int) $counter + 4), $numbers);
         } finally {
             DB::table('inventory_movements')->whereIn('material_id', $materials->modelKeys())->delete();
@@ -77,7 +77,7 @@ class InventoryConcurrencyTest extends TestCase
             if (! $permissionExisted) {
                 $permission->delete();
             }
-            DB::table('inventory_sequences')->where('name', 'movement_folio')->update(['next_value' => $counter]);
+            DB::table('inventory_sequences')->where('name', 'movement_folio_v2')->update(['next_value' => $counter]);
             app(PermissionRegistrar::class)->forgetCachedPermissions();
         }
     }
