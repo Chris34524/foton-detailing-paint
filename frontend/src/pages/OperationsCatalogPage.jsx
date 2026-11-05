@@ -40,14 +40,14 @@ export default function OperationsCatalogPage({ kind }) {
   }
   function page(value) { const next = new URLSearchParams(params); next.set('page', value); setParams(next) }
   return <section className="workspace-card">
-    <div className="section-heading"><div><p className="eyebrow">{kind === "materials" ? "INVENTARIO Y CONSUMOS" : "CONFIGURACIÓN"}</p><h1>{config.title}</h1><p className="muted page-description">{config.description}</p></div>
-      {can(config.manage) && <button className="primary-button" onClick={() => { setNotice(''); setEditor({ record: null }) }}>Nuevo registro</button>}</div>
+    <div className="section-heading"><div><p className="eyebrow">{kind === "materials" ? "CONTROL DE INVENTARIO" : "CONFIGURACIÓN"}</p><h1>{config.title}</h1><p className="muted page-description">{config.description}</p></div>
+      {can(config.manage) && <button className="primary-button" onClick={() => { setNotice(''); setEditor({ record: null }) }}>{kind === 'materials' ? 'Nuevo producto' : 'Nuevo registro'}</button>}</div>
     {kind === 'materials' && <><InventoryNavigation /><LoadState resource={metadata}>{null}</LoadState></>}
     {kind === 'checklists' && <p><Link to="/inspections">Volver a Inspección</Link></p>}
     <form key={query} className="diagnosis-search" onSubmit={search}>
       <div><label htmlFor="catalog-search">Buscar en catálogo</label><input id="catalog-search" name="search" maxLength={255} defaultValue={params.get('search') || ''} /></div>
       <div><label htmlFor="catalog-active">Actividad</label><select id="catalog-active" name="active" defaultValue={params.get('active') || ''}><option value="">Todos</option><option value="1">Activos</option><option value="0">Inactivos</option></select></div>
-      {kind === 'materials' && <div><label htmlFor="catalog-unit">Unidad de medida</label><input id="catalog-unit" name="unit" maxLength={24} defaultValue={params.get('unit') || ''} /></div>}
+      {kind === 'materials' && metadata.data && <div><label htmlFor="catalog-unit">Unidad de medida</label><select id="catalog-unit" name="unit" defaultValue={params.get('unit') || ''}><option value="">Todas</option>{metadata.data.units.map((unit) => <option key={unit.value} value={unit.value}>{unit.label}</option>)}</select></div>}
       {kind === 'materials' && metadata.data && <div><label htmlFor="inventory-status">Estado de inventario</label><select id="inventory-status" name="stock_status" defaultValue={params.get('stock_status') || ''}>
         <option value="">Todos</option>{metadata.data.stock_statuses.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
       </select></div>}
