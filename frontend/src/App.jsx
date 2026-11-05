@@ -95,7 +95,7 @@ export function AppRoutes() {
           </Route>
         </Route>
       </Route>
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/materials" replace />} />
     </Routes>
   )
 }
