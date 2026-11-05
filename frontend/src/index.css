@@ -134,6 +134,21 @@ td button { min-height: 34px; font-size: .76rem; padding: .4rem .65rem; }
 /* Inventario: preservar el ancho legible de cada dato en vez de apilar acciones. */
 .inventory-table-scroll { overflow-x: auto; overscroll-behavior-x: contain; }
 .inventory-table { min-width: 1740px; }
+.movement-table-scroll { overflow-x: auto; overscroll-behavior-x: contain; }
+.movement-table { min-width: 1900px; }
+.movement-table th, .movement-table td { padding: .82rem .9rem; }
+.movement-table th:nth-child(1), .movement-table td:nth-child(1) { min-width: 155px; white-space: nowrap; }
+.movement-table th:nth-child(2), .movement-table td:nth-child(2) { min-width: 130px; white-space: nowrap; }
+.movement-table th:nth-child(3), .movement-table td:nth-child(3) { min-width: 120px; white-space: nowrap; }
+.movement-table th:nth-child(4), .movement-table td:nth-child(4) { min-width: 210px; }
+.movement-table th:nth-child(5), .movement-table td:nth-child(5) { min-width: 120px; white-space: nowrap; }
+.movement-table th:nth-child(6), .movement-table td:nth-child(6) { min-width: 110px; text-align: right; white-space: nowrap; }
+.movement-table th:nth-child(7), .movement-table td:nth-child(7) { min-width: 135px; white-space: nowrap; }
+.movement-table th:nth-child(8), .movement-table td:nth-child(8) { min-width: 160px; text-align: right; white-space: nowrap; }
+.movement-table th:nth-child(9), .movement-table td:nth-child(9) { min-width: 155px; }
+.movement-table th:nth-child(10), .movement-table td:nth-child(10) { min-width: 140px; }
+.movement-table th:nth-child(11), .movement-table td:nth-child(11) { min-width: 210px; }
+
 .inventory-table th, .inventory-table td { padding: .78rem .85rem; }
 .inventory-table th:nth-child(1), .inventory-table td:nth-child(1) { min-width: 150px; }
 .inventory-table td:nth-child(1) { overflow-wrap: anywhere; }
