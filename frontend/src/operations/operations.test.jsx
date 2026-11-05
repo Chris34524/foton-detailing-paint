@@ -183,7 +183,7 @@ describe('materials and checklist administration', () => {
     renderApp('/work-orders/15')
     expect(await screen.findByRole('heading', { name: 'Materiales consumidos' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Registrar consumo' })).not.toBeInTheDocument()
-    expect(await screen.findByText('1.750 Kg')).toBeInTheDocument()
+    expect(await screen.findByText('1.75 Kg')).toBeInTheDocument()
   })
   it('hides standalone consumptions while retaining Work Order consumption', async () => {
     renderApp('/materials')
