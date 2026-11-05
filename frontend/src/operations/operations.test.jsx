@@ -46,9 +46,10 @@ describe('operations permissions and data states', () => {
   it('shows permitted module navigation', async () => {
     renderApp('/processes')
     const nav = await screen.findByRole('navigation', { name: 'Navegación principal' })
-    expect(within(nav).getByRole('link', { name: 'Procesos' })).toBeInTheDocument()
     expect(within(nav).getByRole('link', { name: 'Materiales' })).toBeInTheDocument()
-    expect(within(nav).getByRole('link', { name: 'Inspección' })).toBeInTheDocument()
+    expect(within(nav).queryByRole('link', { name: 'Procesos' })).not.toBeInTheDocument()
+    expect(within(nav).queryByRole('link', { name: 'Inspección' })).not.toBeInTheDocument()
+    expect(within(nav).queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument()
   })
   it.each(['/processes','/materials','/inspections','/inspections/100','/inspections/new','/inspection/checklists','/work-orders/15/inspections/new'])('guards direct access to %s', async (path) => {
     authService.currentUser.mockResolvedValue({ ...user, permissions: [] })
