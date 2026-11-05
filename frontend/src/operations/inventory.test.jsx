@@ -120,6 +120,17 @@ describe('inventory screens', () => {
     expect(await screen.findByText('No hay movimientos para mostrar.')).toBeInTheDocument()
   })
 })
+describe('simplified material selector', () => {
+  it('shows a single material dropdown without search filters or picker pagination', async () => {
+    renderApp('/materials/movements/new')
+    const picker = await screen.findByRole('combobox', { name: 'Material' })
+    expect(picker).toBeInTheDocument()
+    expect(within(picker).getByRole('option', { name: /Material de prueba|Pintura/i })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Buscar material')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Buscar opciones' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: /Paginación de material/i })).not.toBeInTheDocument()
+  })
+})
 describe('movement confirmation', () => {
   it('uses backend preview, read-only equivalence and server receipt', async () => {
     const clicker = userEvent.setup()
