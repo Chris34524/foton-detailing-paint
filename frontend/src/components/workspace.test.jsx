@@ -12,6 +12,7 @@ function renderWorkspace(permissions = [], path = '/dashboard') {
   return render(<MemoryRouter initialEntries={[path]}><AuthContext.Provider value={auth}>
     <Routes><Route element={<AuthenticatedLayout />}>
       <Route path="/dashboard" element={<DashboardPage />} />
+       <Route path="/materials" element={<h1>Materiales</h1>} />
       <Route path="/materials/movements/10" element={<h1>Detalle del movimiento</h1>} />
       <Route path="/inspection/checklists" element={<h1>Checklists</h1>} />
     </Route></Routes>
@@ -21,8 +22,8 @@ describe('workspace navigation and operational home', () => {
   it('offers only the modules and operational shortcuts authorized for the account', () => {
     renderWorkspace(['units.view', 'work_orders.view'])
     const navigation = screen.getByRole('navigation', { name: 'Navegación principal' })
-    expect(within(navigation).getByRole('link', { name: 'Unidades' })).toHaveAttribute('href', '/units')
-    expect(within(navigation).getByRole('link', { name: 'Trabajos' })).toHaveAttribute('href', '/work-orders')
+    expect(within(navigation).queryByRole('link', { name: 'Unidades' })).not.toBeInTheDocument()
+    expect(within(navigation).queryByRole('link', { name: 'Trabajos' })).not.toBeInTheDocument()
     expect(within(navigation).queryByRole('link', { name: 'Materiales' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Consultar unidades' })).toHaveAttribute('href', '/units')
     expect(screen.getByRole('link', { name: /Cola de trabajo/ })).toHaveAttribute('href', '/work-orders/queue')
@@ -43,20 +44,20 @@ describe('workspace navigation and operational home', () => {
     expect(screen.queryByRole('heading', { name: 'Accesos rápidos' })).not.toBeInTheDocument()
   })
   it('opens navigation with focus and returns focus on Escape', async () => {
-    renderWorkspace(['units.view'])
+    renderWorkspace(['materials.view'])
     const clicker = userEvent.setup()
     await clicker.click(screen.getByRole('button', { name: 'Abrir menú' }))
     expect(screen.getByRole('button', { name: 'Cerrar menú' })).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveFocus()
+    expect(screen.getByRole('link', { name: 'Materiales' })).toHaveFocus()
     await clicker.keyboard('{Escape}')
     expect(screen.getByRole('button', { name: 'Abrir menú' })).toHaveAttribute('aria-expanded', 'false')
     expect(screen.getByRole('button', { name: 'Abrir menú' })).toHaveFocus()
   })
   it('closes the menu and focuses content after following a navigation link', async () => {
-    renderWorkspace(['units.view'])
+    renderWorkspace(['materials.view'])
     const clicker = userEvent.setup()
     await clicker.click(screen.getByRole('button', { name: 'Abrir menú' }))
-    await clicker.click(screen.getByRole('link', { name: 'Dashboard' }))
+    await clicker.click(screen.getByRole('link', { name: 'Materiales' }))
     expect(screen.getByRole('main')).toHaveFocus()
     expect(screen.getByRole('button', { name: 'Abrir menú' })).toHaveAttribute('aria-expanded', 'false')
     expect(screen.getByRole('link', { name: 'Saltar al contenido' })).toHaveAttribute('href', '#workspace-content')
@@ -64,7 +65,8 @@ describe('workspace navigation and operational home', () => {
   it.each([['/materials/movements/10', 'Materiales', 'materials.view'], ['/inspection/checklists', 'Inspección', 'inspection.view']])('retains module context on %s', (path, label, permission) => {
     renderWorkspace([permission], path)
     const navigation = screen.getByRole('navigation', { name: 'Navegación principal' })
-    expect(within(navigation).getByRole('link', { name: label })).toHaveAttribute('aria-current', 'page')
+    if (label === 'Materiales') expect(within(navigation).getByRole('link', { name: label })).toHaveAttribute('aria-current', 'page')
+    else expect(within(navigation).queryByRole('link', { name: label })).not.toBeInTheDocument()
     expect(document.title).toBe(label + ' · FOTON')
   })
 })
