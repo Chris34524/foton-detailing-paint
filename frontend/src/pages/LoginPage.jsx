@@ -18,7 +18,7 @@ export default function LoginPage() {
 
   if (isAuthenticated) {
     const destination = location.state?.from
-    return <Navigate to={destination?.startsWith('/') && !destination.startsWith('//') && destination !== '/login' ? destination : '/dashboard'} replace />
+    return <Navigate to={destination?.startsWith('/') && !destination.startsWith('//') && destination !== '/login' ? destination : '/materials'} replace />
   }
 
   async function handleSubmit(event) {
