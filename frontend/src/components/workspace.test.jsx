@@ -6,9 +6,9 @@ import AuthContext from '../auth/AuthContext'
 import AuthenticatedLayout from './AuthenticatedLayout'
 import DashboardPage from '../pages/DashboardPage'
 
-function renderWorkspace(permissions = [], path = '/dashboard') {
-  const auth = { user: { id: 1, name: 'Cristian', email: 'test@example.com' }, roles: ['operator'], logout: vi.fn(),
-    can: (permission) => permissions.includes(permission) }
+function renderWorkspace(permissions = [], path = '/dashboard', { email = 'test@example.com', roles = ['operator'] } = {}) {
+  const auth = { user: { id: 1, name: 'Cristian', email }, roles, logout: vi.fn(),
+    can: (permission) => roles.includes('super_admin') || permissions.includes(permission) }
   return render(<MemoryRouter initialEntries={[path]}><AuthContext.Provider value={auth}>
     <Routes><Route element={<AuthenticatedLayout />}>
       <Route path="/dashboard" element={<DashboardPage />} />
@@ -30,6 +30,29 @@ describe('workspace navigation and operational home', () => {
     expect(screen.queryByRole('link', { name: /Registrar unidad/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Alertas de inventario/ })).not.toBeInTheDocument()
     expect(screen.getByText('Operador')).toBeInTheDocument()
+  })
+  it('shows all modules and Dashboard to the developer super administrator', () => {
+    renderWorkspace([], '/dashboard', { email: 'developer@foton-detailing.local', roles: ['super_admin'] })
+    const navigation = screen.getByRole('navigation', { name: 'Navegación principal' })
+    for (const label of ['Dashboard', 'Unidades', 'Diagnóstico', 'Trabajos', 'Procesos', 'Materiales', 'Inspección']) {
+      expect(within(navigation).getByRole('link', { name: label })).toBeInTheDocument()
+    }
+  })
+  it('does not grant full navigation based solely on email or super admin role', () => {
+    const first = renderWorkspace(['materials.view'], '/materials', {
+      email: 'developer@foton-detailing.local', roles: ['operator'],
+    })
+    const navigation = screen.getByRole('navigation', { name: 'Navegación principal' })
+    expect(within(navigation).queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument()
+    expect(within(navigation).queryByRole('link', { name: 'Unidades' })).not.toBeInTheDocument()
+    expect(within(navigation).getByRole('link', { name: 'Materiales' })).toBeInTheDocument()
+    first.unmount()
+
+    renderWorkspace([], '/materials', { email: 'other@example.com', roles: ['super_admin'] })
+    const otherNavigation = screen.getByRole('navigation', { name: 'Navegación principal' })
+    expect(within(otherNavigation).queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument()
+    expect(within(otherNavigation).queryByRole('link', { name: 'Unidades' })).not.toBeInTheDocument()
+    expect(within(otherNavigation).getByRole('link', { name: 'Materiales' })).toBeInTheDocument()
   })
   it('enables creation shortcuts with their specific permissions', () => {
     renderWorkspace(['units.view', 'units.create', 'materials.view', 'inspection.execute'])
