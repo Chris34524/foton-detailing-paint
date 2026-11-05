@@ -192,7 +192,7 @@ describe('materials and checklist administration', () => {
   })
   it('does not render the standalone consumptions view from its former URL', async () => {
     renderApp('/materials/consumptions')
-    expect(await screen.findByRole('heading', { name: /Bienvenido,/ })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Materiales' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Consumos de materiales' })).not.toBeInTheDocument()
     expect(operationsService.consumptions).not.toHaveBeenCalled()
   })
