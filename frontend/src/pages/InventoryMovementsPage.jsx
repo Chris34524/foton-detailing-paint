@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import useAuth from '../auth/useAuth'
 import { operationsPermissions as permissions } from '../operations/permissions'
@@ -7,19 +7,16 @@ import Pagination from '../diagnosis/Pagination'
 import { formatUnitDate } from '../units/unitErrors'
 import inventoryService from '../operations/inventoryService'
 import InventoryNavigation from '../operations/InventoryNavigation'
-import CatalogPicker from '../operations/CatalogPicker'
 import useInventoryRefresh from '../operations/useInventoryRefresh'
 import { LoadState } from '../operations/Feedback'
-function Filters({ params, material, meta, onSearch, onClear }) {
-  const [selected, setSelected] = useState(material)
+function Filters({ params, meta, onSearch, onClear }) {
   return <form className="inventory-filters" onSubmit={(event) => {
     event.preventDefault()
     const next = new URLSearchParams()
     for (const [name, value] of new FormData(event.currentTarget)) if (value.trim()) next.set(name, value.trim())
-    if (selected) next.set('material_id', String(selected.id))
+    if (params.get('material_id')) next.set('material_id', params.get('material_id'))
     onSearch(next)
   }}>
-    <CatalogPicker kind="materials" label="Componente" value={selected?.id} selected={selected} activeOnly={false} onChange={(value, record) => setSelected(value ? record : null)} />
     <div><label htmlFor="movement-search">Buscar código, componente o folio</label><input id="movement-search" name="search" defaultValue={params.get('search') || ''} maxLength={255} /></div>
     <div><label htmlFor="filter-movement-type">Tipo de movimiento</label><select id="filter-movement-type" name="movement_type" defaultValue={params.get('movement_type') || ''}>
       <option value="">Todos</option>{meta.movement_types.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></div>
@@ -36,16 +33,16 @@ export default function InventoryMovementsPage() {
   const query = params.toString()
   const materialId = params.get('material_id')
   const loader = useCallback(async (signal) => {
-    const [collection, meta, material] = await Promise.all([inventoryService.movements(Object.fromEntries(new URLSearchParams(query)), { signal }),
-      inventoryService.meta({ signal }), materialId ? inventoryService.stock(materialId, { signal }) : Promise.resolve(null)])
-    return { collection, meta, material }
-  }, [query, materialId])
+    const [collection, meta] = await Promise.all([inventoryService.movements(Object.fromEntries(new URLSearchParams(query)), { signal }),
+      inventoryService.meta({ signal })])
+    return { collection, meta }
+  }, [query])
   const resource = useData('inventory-movements:' + query, loader)
   useInventoryRefresh(resource.retry)
   return <section className="workspace-card"><div className="section-heading"><h1>Movimientos de inventario</h1>
     {canAny([permissions.materialsManage, permissions.materialsConsume]) && <Link className="button-link" to={'/materials/movements/new' + (materialId ? '?material_id=' + materialId : '')}>Registrar movimiento</Link>}</div>
     <InventoryNavigation /><LoadState resource={resource}>{resource.data && <>
-      <Filters key={query} params={params} material={resource.data.material} meta={resource.data.meta} onSearch={setParams} onClear={() => setParams({})} />
+      <Filters key={query} params={params} meta={resource.data.meta} onSearch={setParams} onClear={() => setParams({})} />
       {resource.data.collection.data.length === 0 ? <p className="empty-state">No hay movimientos para mostrar.</p> : <div className="table-scroll" tabIndex={0} role="region" aria-label="Tabla de registros"><table>
         <caption className="sr-only">Historial de movimientos</caption><thead><tr><th>Fecha</th><th>Folio</th><th>Código</th><th>Componente</th><th>Tipo</th><th>Cantidad</th><th>Unidad movimiento</th><th>Cantidad equivalente</th><th>Responsable</th><th>Área / destino</th><th>Observaciones</th></tr></thead>
         <tbody>{resource.data.collection.data.map((movement) => <tr key={movement.id}>
