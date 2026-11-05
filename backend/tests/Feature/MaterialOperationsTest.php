@@ -17,13 +17,14 @@ class MaterialOperationsTest extends OperationsTestCase
     public function test_material_catalog_normalizes_and_supports_lifecycle_without_delete(): void
     {
         $actor = $this->administrator();
-        $id = $this->postJson('/api/materials', ['code' => ' paint ', 'name' => ' Pintura ', 'unit' => ' l ', 'warehouse_reference' => ' WH-1 '])->assertCreated()
-            ->assertJsonPath('data.code', 'PAINT')->assertJsonPath('data.unit', 'L')->assertJsonPath('data.created_by.id', $actor->id)->json('data.id');
-        $this->postJson('/api/materials', ['code' => 'paint', 'name' => 'Otro', 'unit' => 'kg'])->assertUnprocessable();
+        $id = $this->postJson('/api/materials', ['name' => ' Pintura ', 'unit' => ' l ', 'warehouse_reference' => ' WH-1 '])->assertCreated()
+            ->assertJsonPath('data.code', 'PROD-001')->assertJsonPath('data.unit', 'L')->assertJsonPath('data.created_by.id', $actor->id)->json('data.id');
+        $this->postJson('/api/materials', ['code' => 'PROD-999', 'name' => 'Otro', 'unit' => 'kg'])->assertUnprocessable()->assertJsonValidationErrors('code');
+        $this->patchJson('/api/materials/'.$id, ['code' => 'PROD-999'])->assertUnprocessable()->assertJsonValidationErrors('code');
         $this->patchJson('/api/materials/'.$id, ['is_active' => false])->assertOk();
         $this->patchJson('/api/materials/'.$id, ['is_active' => true, 'name' => 'Nuevo'])->assertOk();
         $this->getJson('/api/materials/'.$id)->assertOk()->assertJsonPath('data.name', 'Nuevo');
-        $this->getJson('/api/materials?search=paint&unit=L&active=1&per_page=1')->assertOk()->assertJsonPath('meta.total', 1);
+        $this->getJson('/api/materials?search=PROD-001&unit=L&active=1&per_page=1')->assertOk()->assertJsonPath('meta.total', 1);
         $this->getJson('/api/materials?sort=consumed_at')->assertUnprocessable();
         $this->deleteJson('/api/materials/'.$id)->assertMethodNotAllowed();
     }
