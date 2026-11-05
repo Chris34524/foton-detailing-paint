@@ -44,12 +44,10 @@ async function prepareMovement(clicker) {
 describe('inventory screens', () => {
   it('shows calculated stock, parameters, visible status and location', async () => {
     renderApp('/materials')
-    expect(await screen.findByText('5.000000')).toBeInTheDocument()
-    for (const text of ['6.000000', '10.000000', '50.00%', 'Laboratorio de Pintura', 'Proveedor de prueba']) expect(screen.getByText(text)).toBeInTheDocument()
+    expect(await screen.findByText('5')).toBeInTheDocument()
+    for (const text of ['6', '10', '50%', 'Laboratorio de Pintura', 'Proveedor de prueba']) expect(screen.getByText(text)).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: 'Navegación de materiales' })).toBeInTheDocument()
-    expect(screen.getByText('Stock inicial')).toBeInTheDocument()
-    expect(screen.getByText('Ajustes negativos')).toBeInTheDocument()
-    expect(screen.getByText('5.000000 L')).toBeInTheDocument()
+    expect(screen.queryByText('Desglose de existencias')).not.toBeInTheDocument()
   })
   it('filters inventory status on the server', async () => {
     const clicker = userEvent.setup()
@@ -88,7 +86,7 @@ describe('inventory screens', () => {
     renderApp('/materials/movements')
     const table = await screen.findByRole('table')
     expect(within(table).getByRole('link', { name: movement.folio })).toHaveAttribute('href', '/materials/movements/10')
-    for (const text of ['750.000000', 'ml', '0.750000 L', 'Admin de prueba', 'Pintura 1']) expect(within(table).getByText(text)).toBeInTheDocument()
+    for (const text of ['750', 'ml', '0.75 L', 'Admin de prueba', 'Pintura 1']) expect(within(table).getByText(text)).toBeInTheDocument()
   })
   it('filters movements by date, type and destination with server pagination', async () => {
     inventoryService.movements.mockResolvedValue(collection([movement], { current_page: 1, last_page: 2, total: 25 }))
@@ -107,7 +105,7 @@ describe('inventory screens', () => {
   })
   it('shows a confirmed movement as read-only', async () => {
     renderApp('/materials/movements/10')
-    expect(await screen.findByText('LDR-DP-0001')).toBeInTheDocument()
+    expect(await screen.findByText('MOV-0001')).toBeInTheDocument()
     expect(screen.getByText('Aplicado en cabina')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Editar|Eliminar/ })).not.toBeInTheDocument()
   })
@@ -142,8 +140,8 @@ describe('movement confirmation', () => {
     expect(screen.getByLabelText('Cantidad equivalente').tagName).toBe('INPUT')
     await waitFor(() => expect(inventoryService.preview).toHaveBeenLastCalledWith(5, { quantity_original: '750', unit_original: 'ml', movement_type: 'exit' }, expect.anything()))
     await clicker.click(screen.getByRole('button', { name: 'Confirmar movimiento' }))
-    expect(await screen.findByText('LDR-DP-0001')).toBeInTheDocument()
-    expect(screen.getByText('4.250000')).toBeInTheDocument()
+    expect(await screen.findByText('MOV-0001')).toBeInTheDocument()
+    expect(screen.getByText('4.25')).toBeInTheDocument()
     expect(inventoryService.confirm).toHaveBeenCalledWith(expect.objectContaining({ material_id: 5, quantity_original: '750', unit_original: 'ml', idempotency_key: expect.any(String) }))
   })
   it('blocks insufficient stock without calling confirmation', async () => {
@@ -169,7 +167,7 @@ describe('movement confirmation', () => {
     await prepareMovement(clicker)
     await clicker.click(screen.getByRole('button', { name: 'Confirmar movimiento' }))
     await clicker.click(await screen.findByRole('button', { name: 'Reintentar confirmación' }))
-    expect(await screen.findByText('LDR-DP-0001')).toBeInTheDocument()
+    expect(await screen.findByText('MOV-0001')).toBeInTheDocument()
     expect(inventoryService.confirm.mock.calls[0][0].idempotency_key).toBe(inventoryService.confirm.mock.calls[1][0].idempotency_key)
   })
   it('shows backend validation without a receipt', async () => {
@@ -178,7 +176,7 @@ describe('movement confirmation', () => {
     await prepareMovement(clicker)
     await clicker.click(screen.getByRole('button', { name: 'Confirmar movimiento' }))
     expect(await screen.findByText('Existencia insuficiente al confirmar.')).toBeInTheDocument()
-    expect(screen.queryByText('LDR-DP-0001')).not.toBeInTheDocument()
+    expect(screen.queryByText('MOV-0001')).not.toBeInTheDocument()
   })
   it('limits operational consumers to backend-authorized exit type', async () => {
     authService.currentUser.mockResolvedValue({ ...user, permissions: ['materials.view', 'materials.consume'] })
@@ -211,6 +209,6 @@ describe('movement confirmation', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Guardar consumo' })).toBeEnabled())
     await clicker.click(screen.getByRole('button', { name: 'Guardar consumo' }))
     await waitFor(() => expect(operationsService.consume).toHaveBeenCalledWith(15, expect.objectContaining({ quantity: '750', unit_original: 'ml', work_order_process_step_id: 51, idempotency_key: expect.any(String) })))
-    expect(await screen.findByText('LDR-DP-0001')).toBeInTheDocument()
+    expect(await screen.findByText('MOV-0001')).toBeInTheDocument()
   })
 })
