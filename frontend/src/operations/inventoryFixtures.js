@@ -15,7 +15,7 @@ export const inventoryMaterial = { ...baseMaterial, unit: 'L', minimum_stock: '6
   entries: '0.000000', exits: '0.000000', stock_status: 'critical', stock_status_label: 'CRÍTICO', stock_percentage: '50.00', recommended_action: 'COMPRAR / REABASTECER',
   location: 'Laboratorio de Pintura', supplier: 'Proveedor de prueba', has_inventory_history: true, unit_supported: true }
 export const preview = { quantity_equivalent: '0.750000', unit_inventory: 'L', stock_before: '5.000000', stock_after: '4.250000', sufficient_stock: true, opening_allowed: true, can_confirm: true }
-export const movement = { id: 10, folio: 'LDR-DP-0001', material: { id: 5, code: inventoryMaterial.code, name: inventoryMaterial.name, unit: 'L' },
+export const movement = { id: 10, folio: 'MOV-0001', material: { id: 5, code: inventoryMaterial.code, name: inventoryMaterial.name, unit: 'L' },
   movement_type: 'exit', movement_type_label: 'SALIDA', quantity_original: '750.000000', unit_original: 'ml', quantity_equivalent: '0.750000',
   signed_quantity: '-0.750000', stock_before: '5.000000', stock_after: '4.250000', performed_by: { id: 7, name: 'Admin de prueba' },
   area_destination: 'Pintura 1', notes: 'Aplicado en cabina', occurred_at: '2026-11-03T16:00:00Z', source_kind: 'manual' }
