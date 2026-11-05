@@ -60,7 +60,7 @@ describe('inventory screens', () => {
     const clicker = userEvent.setup()
     renderApp('/materials')
     await clicker.click(await screen.findByRole('button', { name: 'Editar ' + inventoryMaterial.name }))
-    expect(screen.getByRole('combobox', { name: 'Unidad de medida' })).toBeDisabled()
+    expect(within(screen.getByRole('form', { name: 'Editar registro' })).getByRole('combobox', { name: 'Unidad de medida' })).toBeDisabled()
     expect(screen.queryByLabelText('Stock actual')).not.toBeInTheDocument()
     await clicker.clear(screen.getByLabelText('Stock mínimo'))
     await clicker.type(screen.getByLabelText('Stock mínimo'), '7.5')
