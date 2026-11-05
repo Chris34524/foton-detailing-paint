@@ -23,7 +23,15 @@ class MaterialCatalogService
     public function create(User $actor, array $data): Material
     {
         return DB::transaction(function () use ($actor, $data): Material {
+            // Serializa la asignación para evitar códigos duplicados entre usuarios concurrentes.
+            $counter = DB::table('inventory_sequences')->where('name', 'product_code')->lockForUpdate()->first();
+            if ($counter === null) {
+                throw new \RuntimeException('Falta la secuencia de productos. Ejecuta las migraciones.');
+            }
+            $number = (string) $counter->next_value;
+            DB::table('inventory_sequences')->where('name', 'product_code')->update(['next_value' => bcadd($number, '1', 0)]);
             $record = new Material($data);
+            $record->code = 'PROD-'.str_pad($number, 3, '0', STR_PAD_LEFT);
             $record->created_by = $actor->id;
             $this->validateParameters($record);
             $record->save();
