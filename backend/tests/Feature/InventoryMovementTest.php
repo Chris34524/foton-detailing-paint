@@ -27,7 +27,7 @@ class InventoryMovementTest extends OperationsTestCase
                 $extra['notes'] = 'Corrección autorizada';
             }
             $this->postJson('/api/inventory-movements', $this->payload($material, $type, $quantity, $extra))->assertCreated()
-                ->assertJsonPath('data.stock_after', $stock)->assertJsonPath('data.folio', 'LDR-DP-'.str_pad((string) ($index + 1), 4, '0', STR_PAD_LEFT))
+                ->assertJsonPath('data.stock_after', $stock)->assertJsonPath('data.folio', 'MOV-'.str_pad((string) ($index + 1), 4, '0', STR_PAD_LEFT))
                 ->assertJsonPath('data.performed_by.id', $actor->id);
         }
         $this->getJson('/api/materials/'.$material->id.'/stock')->assertOk()->assertJsonPath('data.stock_actual', '6.500000')
@@ -52,11 +52,11 @@ class InventoryMovementTest extends OperationsTestCase
         $this->administrator();
         $material = Material::factory()->create();
         $this->fundMaterial($material, '1');
-        $counter = DB::table('inventory_sequences')->where('name', 'movement_folio')->value('next_value');
+        $counter = DB::table('inventory_sequences')->where('name', 'movement_folio_v2')->value('next_value');
         $this->postJson('/api/inventory-movements', $this->payload($material, 'exit', '2'))->assertUnprocessable()->assertJsonValidationErrors('quantity_original');
         $this->assertDatabaseCount('inventory_movements', 1);
         $this->assertSame('1.000000', $material->inventoryBalance->quantity);
-        $this->assertEquals($counter, DB::table('inventory_sequences')->where('name', 'movement_folio')->value('next_value'));
+        $this->assertEquals($counter, DB::table('inventory_sequences')->where('name', 'movement_folio_v2')->value('next_value'));
     }
 
     public function test_retries_return_same_movement_and_conflicting_keys_are_rejected(): void
@@ -78,7 +78,7 @@ class InventoryMovementTest extends OperationsTestCase
         $this->administrator();
         $material = Material::factory()->create();
         $this->postJson('/api/inventory-movements', $this->payload($material, 'adjustment_in'))->assertUnprocessable()->assertJsonValidationErrors('notes');
-        foreach ([['unit_original' => 'hojas'], ['area_destination' => 'Inventada'], ['quantity_original' => '1.0000001'], ['quantity_original' => -1], ['idempotency_key' => null], ['performed_by' => 1], ['folio' => 'LDR-DP-9999'], ['stock_after' => '20']] as $extra) {
+        foreach ([['unit_original' => 'hojas'], ['area_destination' => 'Inventada'], ['quantity_original' => '1.0000001'], ['quantity_original' => -1], ['idempotency_key' => null], ['performed_by' => 1], ['folio' => 'MOV-9999'], ['stock_after' => '20']] as $extra) {
             $this->postJson('/api/inventory-movements', $this->payload($material, 'entry', '1', $extra))->assertUnprocessable();
         }
         $this->assertDatabaseCount('inventory_movements', 0);
@@ -106,9 +106,9 @@ class InventoryMovementTest extends OperationsTestCase
     {
         $this->administrator();
         $material = Material::factory()->create();
-        DB::table('inventory_sequences')->where('name', 'movement_folio')->update(['next_value' => 10000]);
-        $this->postJson('/api/inventory-movements', $this->payload($material))->assertCreated()->assertJsonPath('data.folio', 'LDR-DP-10000');
-        $this->postJson('/api/inventory-movements', $this->payload($material))->assertCreated()->assertJsonPath('data.folio', 'LDR-DP-10001');
+        DB::table('inventory_sequences')->where('name', 'movement_folio_v2')->update(['next_value' => 10000]);
+        $this->postJson('/api/inventory-movements', $this->payload($material))->assertCreated()->assertJsonPath('data.folio', 'MOV-10000');
+        $this->postJson('/api/inventory-movements', $this->payload($material))->assertCreated()->assertJsonPath('data.folio', 'MOV-10001');
     }
 
     public function test_rbac_limits_consume_to_outbound_and_manager_to_other_types(): void
