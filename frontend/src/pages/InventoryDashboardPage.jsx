@@ -5,6 +5,7 @@ import { operationsPermissions as permissions } from '../operations/permissions'
 import useData from '../diagnosis/useDiagnosisData'
 import Pagination from '../diagnosis/Pagination'
 import inventoryService from '../operations/inventoryService'
+import { formatQuantity } from '../operations/formatQuantity'
 import InventoryNavigation from '../operations/InventoryNavigation'
 import useInventoryRefresh from '../operations/useInventoryRefresh'
 import { LoadState } from '../operations/Feedback'
@@ -30,7 +31,7 @@ export default function InventoryDashboardPage() {
         <caption className="sr-only">Alertas de inventario</caption><thead><tr><th>Código</th><th>Componente</th><th>Ubicación</th><th>Stock actual</th><th>Mínimo</th><th>Máximo</th><th>Estado</th><th>Acción recomendada</th></tr></thead>
         <tbody>{resource.data.dashboard.alerts.data.map((material) => <tr key={material.id}>
           <td>{material.code}</td><td><Link to={'/materials/movements?material_id=' + material.id}>{material.name}</Link></td><td>{material.location || '—'}</td>
-          <td>{material.stock_actual} {material.unit}</td><td>{material.minimum_stock ?? '—'}</td><td>{material.maximum_stock ?? '—'}</td>
+          <td>{formatQuantity(material.stock_actual)} {material.unit}</td><td>{formatQuantity(material.minimum_stock)}</td><td>{formatQuantity(material.maximum_stock)}</td>
           <td><span className="stock-badge" data-stock-status={material.stock_status}>{material.stock_status_label}</span></td><td>{material.recommended_action}</td>
         </tr>)}</tbody></table></div>}
       <Pagination meta={resource.data.dashboard.alerts.meta} label="Paginación de alertas" onPage={(page) => setParams({ page: String(page) })} />
