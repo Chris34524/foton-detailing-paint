@@ -12,7 +12,7 @@ class MaterialResource extends JsonResource
     public function toArray(Request $request): array
     {
         return ['id' => $this->id, 'code' => $this->code, 'name' => $this->name, 'description' => $this->description, 'unit' => $this->unit,
-            'warehouse_reference' => $this->warehouse_reference, 'is_active' => $this->is_active,
+            'warehouse_reference' => $this->warehouse_reference, 'kind' => $this->kind, 'is_active' => $this->is_active,
             'location' => $this->location, 'supplier' => $this->supplier, 'notes' => $this->notes,
             'unit_supported' => MaterialUnit::normalize($this->unit) !== null,
             'has_inventory_history' => (bool) $this->inventory_movements_exists || (bool) $this->material_consumptions_exists,
