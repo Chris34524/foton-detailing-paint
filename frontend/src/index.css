@@ -435,3 +435,7 @@ td button { min-height: 34px; font-size: .76rem; padding: .4rem .65rem; }
 .paint-panel table th, .paint-panel table td { white-space: nowrap; }
 @media (max-width: 1180px) { .paint-workspace { grid-template-columns: 1fr; } }
 @media (max-width: 640px) { .paint-ingredient-row { grid-template-columns: 1fr; } .paint-preview-row { grid-template-columns: 1fr auto; } .paint-preview-row span:last-child { grid-column: span 2; text-align: left; } .paint-panel, .paint-editor { padding: .9rem; } }
+
+.paint-version-history { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; margin-bottom: 1rem; }
+.paint-version-history span { color: var(--muted); font-size: .8rem; margin-right: .2rem; }
+.paint-version-history button { min-height: 32px; padding: .32rem .6rem; font-size: .76rem; }
