@@ -62,10 +62,11 @@ class InventoryController extends Controller
         $after = $type->increases() ? bcadd($before, $equivalent, 6) : bcsub($before, $equivalent, 6);
         $sufficient = bccomp($after, '0', 6) >= 0 && bccomp($after, MaterialQuantityConverter::MAX, 6) <= 0;
         $openingAllowed = $type !== InventoryMovementType::OpeningBalance || ! $material->inventoryMovements()->exists();
+        $finishedAllowed = $material->kind !== 'finished_paint';
 
         return response()->json(['quantity_equivalent' => $equivalent, 'unit_inventory' => $material->unit, 'stock_before' => $before,
             'stock_after' => $sufficient ? $after : null, 'sufficient_stock' => $sufficient, 'opening_allowed' => $openingAllowed,
-            'can_confirm' => $material->is_active && $sufficient && $openingAllowed && $request->user()->can('create', [InventoryMovement::class, $type])]);
+            'can_confirm' => $material->is_active && $sufficient && $openingAllowed && $finishedAllowed && $request->user()->can('create', [InventoryMovement::class, $type])]);
     }
 
     public function index(InventoryMovementIndexRequest $request, ?Material $material = null): AnonymousResourceCollection
