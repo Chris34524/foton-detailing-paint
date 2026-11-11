@@ -35,8 +35,12 @@ class PaintFormulaController extends Controller
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'product_id' => ['sometimes', 'integer', 'min:1'],
         ]);
         $query = PaintFormula::query()->with($this->formulaRelations())->where('is_current', true);
+        if (isset($filters['product_id'])) {
+            $query->where('product_material_id', $filters['product_id']);
+        }
         if (isset($filters['search']) && trim($filters['search']) !== '') {
             $term = '%'.trim($filters['search']).'%';
             $query->where(fn ($q) => $q->where('vehicle_model', 'like', $term)
