@@ -6,6 +6,7 @@ use App\Enums\Permission;
 use App\Models\InventoryMovement;
 use App\Models\Material;
 use App\Models\PaintFormula;
+use App\Models\WorkOrder;
 use Illuminate\Support\Str;
 
 class PaintFormulationTest extends OperationsTestCase
@@ -166,7 +167,7 @@ class PaintFormulationTest extends OperationsTestCase
         ])->assertCreated();
         $product = PaintFormula::findOrFail($id)->product;
         $this->assertSame('1.000000', $product->fresh()->inventoryBalance->quantity);
-        $order = \App\Models\WorkOrder::factory()->create();
+        $order = WorkOrder::factory()->create();
         $this->postJson('/api/work-orders/'.$order->id.'/material-consumptions', [
             'material_id' => $product->id, 'quantity' => '0.25',
             'unit_original' => 'gr', 'idempotency_key' => (string) Str::uuid(),
