@@ -10,7 +10,7 @@ export default function InventoryTable({ data, canManage, canMove, onEdit }) {
       <td>{material.stock_percentage == null ? '—' : formatQuantity(material.stock_percentage) + '%'}</td><td>{material.location || '—'}</td><td>{material.supplier || '—'}</td>
       <td><div className="inventory-row-actions">
         {canManage && material.kind !== 'finished_paint' && <button onClick={() => onEdit(material)} aria-label={'Editar ' + material.name}>Editar</button>}
-        {canMove && material.is_active && (material.kind === 'finished_paint'
+        {material.is_active && (material.kind === 'finished_paint' ? canManage : canMove) && (material.kind === 'finished_paint'
           ? <Link to={'/materials/paint-formulas?product_id=' + material.id}>Preparar pintura</Link>
           : <Link to={'/materials/movements/new?material_id=' + material.id}>Registrar movimiento</Link>)}
         <Link to={'/materials/movements?material_id=' + material.id}>Ver movimientos</Link>
