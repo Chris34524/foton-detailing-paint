@@ -205,6 +205,18 @@ New Work Orders snapshot the configured sequence into `WorkOrderProcessStep`, pr
 
 `/processes` provides catalog search, pagination, activation/editing and explicit sequence ordering. Work Order detail displays the current/next process and historical sequence. No process advancement, activity, pause/resume, duration or timer API is implemented; Phase 7 can later attach timing records to the existing step IDs.
 
+### Paint formulation and batch preparation
+
+The Materials workspace includes **Formulación de Pintura** at `/materials/paint-formulas`. A recipe identifies a vehicle model, paint color and unique manufacturer/color code. Its components are selected from active inventory raw materials in `gr` or `Kg`, with **exact 0.01 g recipe precision**. Liter/milliliter stocks are deliberately excluded from recipes until calibrated per-material density is available: mass and volume cannot safely be converted without density.
+
+Creating a formula automatically creates a separate finished-paint `Material` with its own sequential `PROD-XXX` code and inventory unit `gr`. Recipes are immutable snapshots; publishing a new version changes only the current flag and copies all ingredient lines into a new version. Existing preparation history stays linked to the original version. Users with `materials.view` can browse recipes; `materials.manage` is required to create versions or prepare batches.
+
+Each batch starts with a read-only calculation of gram allocations. A largest-remainder algorithm allocates 0.01 g increments deterministically while conserving the requested finished mass. The backend rejects batches where an ingredient rounds below 0.01 g, lacks stock, is inactive or the output would exceed inventory limits. Confirmation uses one database transaction to write every ingredient `MOV-XXXX` exit, one finished-paint `MOV-XXXX` entry, updated balances, a versioned batch record, immutable movement links and a unique UUID idempotency key. Any failure rolls the whole batch back. An identical retry returns the same receipt; conflicting retries are rejected.
+
+Finished paint cannot receive manual inventory entries or adjustments: stock increases only through confirmed preparation. Application/consumption of finished paint uses the Work Order materials-consumption endpoint to preserve VIN traceability. Existing materials and historic movements remain unchanged.
+
+API: `GET/POST /api/paint-formulas`; `GET /api/paint-formulas/{formula}`; `GET/POST /api/paint-formulas/{formula}/versions`; `POST /api/paint-formulas/{formula}/preview`; `POST /api/paint-formulas/{formula}/prepare`; `GET /api/paint-preparations`. Execute `docker compose exec backend php artisan migrate` when updating to install the additive paint-formulation tables.
+
 ### Materials, inventory and consumption
 
 The current development UI temporarily exposes Materials only in the main navigation. To create a local Materials user without committing a password, run `docker compose exec backend php artisan db:seed --class=RolePermissionSeeder` and then `docker compose exec backend php artisan materials:provision-local-user jose.barajas@ldrsolutions.com.mx --name="José Barajas"`; enter the password privately at the prompt. This is blocked outside `APP_ENV=local`. Temporary passwords must be changed before production. After pulling the branch, run `docker compose exec backend php artisan migrate` to install the additive numbering sequence migration. Historical product and movement codes are not silently renumbered.
