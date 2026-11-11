@@ -144,6 +144,37 @@ class PaintFormulationTest extends OperationsTestCase
         $this->patchJson('/api/materials/'.$productId, ['name' => 'Cambio'])->assertUnprocessable();
     }
 
+    public function test_largest_remainder_keeps_exact_two_decimal_mass_and_finished_paint_is_consumed_with_vin(): void
+    {
+        $this->administrator();
+        $materials = Material::factory()->count(3)->create(['unit' => 'gr']);
+        foreach ($materials as $material) {
+            $this->fundMaterial($material, '10');
+        }
+        $recipe = $this->formulaPayload($materials->map(fn (Material $material): array => [
+            'material_id' => $material->id, 'grams' => '1.00',
+        ])->all());
+        $id = $this->postJson('/api/paint-formulas', $recipe)->assertCreated()->json('data.id');
+        $this->postJson('/api/paint-formulas/'.$id.'/preview', ['quantity_grams' => '1.00'])
+            ->assertOk()->assertJsonPath('total_ingredient_grams', '1.00')
+            ->assertJsonPath('components.0.grams', '0.34')
+            ->assertJsonPath('components.1.grams', '0.33')
+            ->assertJsonPath('components.2.grams', '0.33');
+
+        $this->postJson('/api/paint-formulas/'.$id.'/prepare', [
+            'quantity_grams' => '1.00', 'idempotency_key' => (string) Str::uuid(),
+        ])->assertCreated();
+        $product = PaintFormula::findOrFail($id)->product;
+        $this->assertSame('1.000000', $product->fresh()->inventoryBalance->quantity);
+        $order = \App\Models\WorkOrder::factory()->create();
+        $this->postJson('/api/work-orders/'.$order->id.'/material-consumptions', [
+            'material_id' => $product->id, 'quantity' => '0.25',
+            'unit_original' => 'gr', 'idempotency_key' => (string) Str::uuid(),
+        ])->assertCreated()->assertJsonPath('data.unit.vin', $order->diagnosis->unit->vin)
+            ->assertJsonPath('data.material.code', $product->code);
+        $this->assertSame('0.750000', $product->fresh()->inventoryBalance->quantity);
+    }
+
     public function test_read_only_user_cannot_create_or_prepare_recipes(): void
     {
         $this->withPermissions(Permission::MaterialsView);
