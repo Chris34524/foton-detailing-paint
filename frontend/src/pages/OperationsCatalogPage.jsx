@@ -41,7 +41,7 @@ export default function OperationsCatalogPage({ kind }) {
   function page(value) { const next = new URLSearchParams(params); next.set('page', value); setParams(next) }
   return <section className="workspace-card">
     <div className="section-heading"><div><p className="eyebrow">{kind === "materials" ? "CONTROL DE INVENTARIO" : "CONFIGURACIÓN"}</p><h1>{config.title}</h1><p className="muted page-description">{config.description}</p></div>
-      {can(config.manage) && <button className="primary-button" onClick={() => { setNotice(''); setEditor({ record: null }) }}>{kind === 'materials' ? 'Nuevo producto' : 'Nuevo registro'}</button>}</div>
+      {can(config.manage) && <button className="primary-button" onClick={() => { setNotice(''); setEditor({ record: null }) }}>{kind === 'materials' ? 'Nuevo material base' : 'Nuevo registro'}</button>}</div>
     {kind === 'materials' && <><InventoryNavigation /><LoadState resource={metadata}>{null}</LoadState></>}
     {kind === 'checklists' && <p><Link to="/inspections">Volver a Inspección</Link></p>}
     <form key={query} className="diagnosis-search" onSubmit={search}>
