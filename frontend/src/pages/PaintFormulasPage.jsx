@@ -52,7 +52,6 @@ export default function PaintFormulasPage() {
 
   useEffect(() => {
     const controller = new AbortController()
-    setLoading(true)
     reload(controller.signal).catch((failure) => {
       if (!controller.signal.aborted) setError(errorMessage(failure, 'No se pudieron consultar las formulaciones.'))
     }).finally(() => { if (!controller.signal.aborted) setLoading(false) })
@@ -84,8 +83,6 @@ export default function PaintFormulasPage() {
   }, [canManage])
 
   useEffect(() => {
-    setPreview(null)
-    setPreviewError('')
     if (!selected?.is_current || !validGrams(grams)) return undefined
     const controller = new AbortController()
     paintService.preview(selected.id, grams, { signal: controller.signal })
@@ -227,7 +224,7 @@ export default function PaintFormulasPage() {
     <div className="paint-workspace">
       <section className="paint-panel" aria-labelledby="paint-catalog-heading">
         <h2 id="paint-catalog-heading">Catálogo de formulaciones</h2>
-        <form className="paint-search" onSubmit={(event) => { event.preventDefault(); setPage(1); setSearch(query.trim()) }}>
+        <form className="paint-search" onSubmit={(event) => { event.preventDefault(); setLoading(true); setPage(1); setSearch(query.trim()) }}>
           <label htmlFor="paint-search">Buscar modelo, color o código</label>
           <div><input id="paint-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar fórmula" />
             <button>Buscar</button></div>
@@ -245,9 +242,9 @@ export default function PaintFormulasPage() {
           </article>)}
         </div>
         {pagination?.last_page > 1 && <div className="form-actions">
-          <button type="button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>Anterior</button>
+          <button type="button" disabled={page <= 1} onClick={() => { setLoading(true); setPage((value) => value - 1) }}>Anterior</button>
           <span>Página {page} de {pagination.last_page}</span>
-          <button type="button" disabled={page >= pagination.last_page} onClick={() => setPage((value) => value + 1)}>Siguiente</button>
+          <button type="button" disabled={page >= pagination.last_page} onClick={() => { setLoading(true); setPage((value) => value + 1) }}>Siguiente</button>
         </div>}
       </section>
 
@@ -274,7 +271,7 @@ export default function PaintFormulasPage() {
               <div><label htmlFor="paint-batch-grams">Cantidad a preparar (g)</label>
                 <input id="paint-batch-grams" required type="text" inputMode="decimal" pattern="[0-9]+([.][0-9]{1,2})?"
                   value={grams} placeholder="Ej. 1000.00" onChange={(event) => {
-                    retryKey.current = null; setGrams(event.target.value); setReceipt(null)
+                    retryKey.current = null; setGrams(event.target.value); setReceipt(null); setPreview(null); setPreviewError('')
                   }} /></div>
               <div><label htmlFor="paint-batch-area">Área / destino</label><select id="paint-batch-area" value={area}
                 onChange={(event) => { retryKey.current = null; setArea(event.target.value) }}>
