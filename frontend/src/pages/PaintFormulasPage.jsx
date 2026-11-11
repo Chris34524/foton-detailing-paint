@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import useAuth from '../auth/useAuth'
 import operationsService from '../operations/operationsService'
 import paintService from '../operations/paintService'
@@ -17,11 +17,14 @@ function errorMessage(error, fallback) {
 
 export default function PaintFormulasPage() {
   const { can } = useAuth()
+  const [urlParams] = useSearchParams()
+  const [productFocus, setProductFocus] = useState(urlParams.get('product_id'))
   const canManage = can(operationsPermissions.materialsManage)
   const [formulas, setFormulas] = useState([])
   const [ingredients, setIngredients] = useState([])
   const [history, setHistory] = useState([])
   const [selected, setSelected] = useState(null)
+  const [versions, setVersions] = useState([])
   const [editor, setEditor] = useState(null)
   const [draft, setDraft] = useState(blank())
   const [query, setQuery] = useState('')
@@ -42,13 +45,14 @@ export default function PaintFormulasPage() {
 
   const reload = useCallback(async (signal) => {
     const [formulasResult, historyResult] = await Promise.all([
-      paintService.list({ page, ...(search ? { search } : {}) }, { signal }),
+      paintService.list({ page, ...(search ? { search } : {}), ...(productFocus ? { product_id: productFocus } : {}) }, { signal }),
       paintService.preparations({ per_page: 10 }, { signal }),
     ])
     setFormulas(formulasResult.data)
+    if (productFocus && formulasResult.data.length) setSelected(formulasResult.data[0])
     setPagination(formulasResult.meta)
     setHistory(historyResult.data)
-  }, [page, search])
+  }, [page, search, productFocus])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -91,6 +95,17 @@ export default function PaintFormulasPage() {
     return () => controller.abort()
   }, [selected, grams])
 
+  useEffect(() => {
+    if (!selected) return undefined
+    const controller = new AbortController()
+    paintService.versions(selected.id, { signal: controller.signal })
+      .then((items) => { if (!controller.signal.aborted) setVersions(items) })
+      .catch((failure) => {
+        if (!controller.signal.aborted) setPreviewError(errorMessage(failure, 'No se pudo cargar el historial de versiones.'))
+      })
+    return () => controller.abort()
+  }, [selected])
+
   function openEditor(formula = null) {
     setEditor(formula ? { id: formula.id } : { id: null })
     setDraft(formula ? {
@@ -131,6 +146,7 @@ export default function PaintFormulasPage() {
 
   function chooseFormula(formula) {
     setSelected(formula)
+    setVersions([])
     setEditor(null)
     setGrams('')
     setPreview(null)
@@ -224,7 +240,7 @@ export default function PaintFormulasPage() {
     <div className="paint-workspace">
       <section className="paint-panel" aria-labelledby="paint-catalog-heading">
         <h2 id="paint-catalog-heading">Catálogo de formulaciones</h2>
-        <form className="paint-search" onSubmit={(event) => { event.preventDefault(); setLoading(true); setPage(1); setSearch(query.trim()) }}>
+        <form className="paint-search" onSubmit={(event) => { event.preventDefault(); setLoading(true); setProductFocus(null); setPage(1); setSearch(query.trim()) }}>
           <label htmlFor="paint-search">Buscar modelo, color o código</label>
           <div><input id="paint-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar fórmula" />
             <button>Buscar</button></div>
@@ -257,6 +273,10 @@ export default function PaintFormulasPage() {
             <span>{selected.product.code} · Color {selected.color_code} · Versión {selected.version}</span>
             <span>Producto terminado disponible: {formatQuantity(selected.product.stock_actual)} g</span>
           </div>
+          {versions.length > 1 && <div className="paint-version-history"><span>Versiones de la fórmula:</span>
+            {versions.map((version) => <button type="button" key={version.id} disabled={version.id === selected.id}
+              onClick={() => chooseFormula(version)}>v{version.version}{version.is_current ? ' · Vigente' : ' · Histórica'}</button>)}
+          </div>}
           {!selected.is_current && <p role="alert">Esta versión es histórica y no admite preparaciones nuevas.</p>}
           <div className="table-scroll" tabIndex={0} role="region" aria-label="Composición de pintura">
             <table><thead><tr><th>Código</th><th>Materia prima</th><th>Gramaje</th><th>Existencia</th></tr></thead>
