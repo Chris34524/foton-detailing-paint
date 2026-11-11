@@ -42,7 +42,7 @@ class InventoryMovementService
     }
 
     /** @return array{movement:InventoryMovement,consumption:?MaterialConsumption,replayed:bool} */
-    public function confirm(User $actor, array $input, ?WorkOrder $workOrder = null): array
+    public function confirm(User $actor, array $input, ?WorkOrder $workOrder = null, ?string $sourceKind = null): array
     {
         $type = $workOrder === null ? InventoryMovementType::from($input['movement_type']) : InventoryMovementType::Exit;
         $workOrder === null ? Gate::forUser($actor)->authorize('create', [InventoryMovement::class, $type])
@@ -50,7 +50,7 @@ class InventoryMovementService
         $key = mb_strtolower($input['idempotency_key']);
         $fingerprint = null;
         try {
-            return DB::transaction(function () use ($actor, $input, $workOrder, $type, $key, &$fingerprint): array {
+            return DB::transaction(function () use ($actor, $input, $workOrder, $type, $key, $sourceKind, &$fingerprint): array {
                 $order = $workOrder === null ? null : WorkOrder::query()->lockForUpdate()->findOrFail($workOrder->id);
                 $material = Material::query()->lockForUpdate()->find($input['material_id']);
                 if ($material === null) {
@@ -61,10 +61,19 @@ class InventoryMovementService
                 $data = ['material_id' => $material->id, 'movement_type' => $type->value, 'quantity_original' => $quantity, 'unit_original' => $originalUnit?->value,
                     'area_destination' => $input['area_destination'] ?? null, 'notes' => $input['notes'] ?? null,
                     'process_step_id' => isset($input['work_order_process_step_id']) ? (int) $input['work_order_process_step_id'] : null, 'external_reference' => $input['external_reference'] ?? null];
+                if ($sourceKind !== null) {
+                    $data['source_kind'] = $sourceKind;
+                }
                 $fingerprint = $this->fingerprint($actor, $order, $data);
                 $existing = InventoryMovement::query()->where('idempotency_key', $key)->first();
                 if ($existing !== null) {
                     return $this->replay($existing, $fingerprint);
+                }
+                if ($material->kind === 'finished_paint' && $sourceKind !== 'paint_preparation' && $type->increases()) {
+                    throw ValidationException::withMessages(['material_id' => 'La pintura terminada solo aumenta mediante una preparación confirmada.']);
+                }
+                if ($material->kind === 'finished_paint' && $workOrder === null && $type === InventoryMovementType::Exit) {
+                    throw ValidationException::withMessages(['material_id' => 'Registra la aplicación de pintura terminada desde una orden de trabajo para conservar el VIN.']);
                 }
                 if (! $material->is_active) {
                     throw ValidationException::withMessages(['material_id' => 'Selecciona un material activo.']);
@@ -130,7 +139,7 @@ class InventoryMovementService
                 $movement->occurred_at = now();
                 $movement->idempotency_key = $key;
                 $movement->request_fingerprint = $fingerprint;
-                $movement->source_kind = $order === null ? 'manual' : 'consumption';
+                $movement->source_kind = $sourceKind ?? ($order === null ? 'manual' : 'consumption');
                 $movement->save();
                 $consumption = null;
                 if ($order !== null) {
