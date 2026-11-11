@@ -49,7 +49,7 @@ class ResetLocalMaterials extends Command
             return self::FAILURE;
         }
 
-        $tables = ['material_consumptions', 'inventory_movements', 'inventory_balances', 'materials'];
+        $tables = ['paint_preparation_components', 'paint_preparations', 'paint_formula_components', 'paint_formulas', 'material_consumptions', 'inventory_movements', 'inventory_balances', 'materials'];
         try {
             $counts = [];
             foreach ($tables as $table) {
