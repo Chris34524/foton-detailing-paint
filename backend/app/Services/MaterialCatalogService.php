@@ -44,6 +44,9 @@ class MaterialCatalogService
     {
         return DB::transaction(function () use ($material, $data): Material {
             $current = Material::query()->lockForUpdate()->findOrFail($material->id);
+            if ($current->kind === 'finished_paint') {
+                throw ValidationException::withMessages(['product' => 'Las pinturas terminadas se administran desde Formulación de Pintura.']);
+            }
             $previousUnit = $current->unit;
             $current->fill($data);
             if ($current->unit !== $previousUnit && ($current->inventoryMovements()->exists() || $current->materialConsumptions()->exists())) {
