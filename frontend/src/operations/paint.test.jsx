@@ -54,6 +54,7 @@ beforeEach(() => {
   operationsService.catalog.mockResolvedValue(collection(base))
   paintService.list.mockResolvedValue(collection([formula]))
   paintService.get.mockResolvedValue({ ...formula, product: { ...formula.product, stock_actual: '1000.000000' } })
+  paintService.versions.mockResolvedValue([formula])
   paintService.preparations.mockResolvedValue(collection([]))
   paintService.preview.mockResolvedValue(preview)
   paintService.prepare.mockResolvedValue(preparation)
