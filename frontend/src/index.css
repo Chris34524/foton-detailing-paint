@@ -398,3 +398,40 @@ td button { min-height: 34px; font-size: .76rem; padding: .4rem .65rem; }
 .load-failure { padding: 1rem 0; }
 .status-badge[data-status=failed] { color: #a12a35; border-color: #efc5cb; background: #fff1f3; }
 .status-badge[data-status=passed] { color: #22613f; border-color: #bfdecb; background: #edf8f1; }
+
+/* Formulación de pintura: catálogo, gramajes y preparación por lotes. */
+.material-kind { display: inline-block; margin-left: .6rem; padding: .12rem .45rem; border-radius: 5px; background: #e4eef9; color: #174b7b; font-size: .7rem; font-weight: 700; vertical-align: middle; }
+.paint-page { max-width: none; }
+.paint-workspace { display: grid; grid-template-columns: minmax(280px, .85fr) minmax(400px, 1.5fr); gap: 1rem; align-items: start; margin: 1.4rem 0; }
+.paint-panel, .paint-editor { border: 1px solid var(--line); border-radius: 11px; padding: 1.2rem; background: #fff; box-shadow: 0 2px 8px #182f4a08; min-width: 0; }
+.paint-panel h2, .paint-editor h2 { margin: 0 0 1rem; }
+.paint-panel .table-scroll { overflow-x: auto; }
+.paint-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .85rem; }
+.paint-ingredient-row { display: grid; grid-template-columns: minmax(180px, 2fr) minmax(120px, 1fr) auto; align-items: end; gap: .75rem; }
+.paint-ingredient-row > button { margin-bottom: 0; }
+.paint-total { margin: .9rem 0; padding: .75rem 0; border-top: 1px solid var(--line); color: var(--muted); }
+.paint-total strong { color: var(--ink); }
+.paint-search { margin: .5rem 0 1rem; }
+.paint-search > div { display: flex; gap: .5rem; }
+.paint-search > div input { min-width: 0; }
+.paint-formula-list { display: grid; gap: .7rem; }
+.paint-formula-item { padding: .85rem; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: .7rem; }
+.paint-formula-item strong, .paint-formula-item span, .paint-formula-item small { display: block; }
+.paint-formula-item strong { font-size: .95rem; }
+.paint-formula-item span { color: var(--muted); font-size: .82rem; margin-top: .16rem; }
+.paint-formula-item small { color: var(--muted); font-size: .76rem; margin-top: .32rem; }
+.paint-formula-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; }
+.paint-formula-actions button { font-size: .78rem; min-height: 35px; padding: .45rem .65rem; }
+.paint-detail-title { display: grid; gap: .3rem; padding: .65rem 0 1rem; }
+.paint-detail-title strong { font-size: 1.05rem; }
+.paint-detail-title span { font-size: .85rem; color: var(--muted); }
+.paint-prepare { border-top: 1px solid var(--line); margin-top: 1.15rem; padding-top: .7rem; }
+.paint-preview { margin: .8rem 0; border: 1px solid #cadbea; border-radius: 9px; padding: .85rem 1rem; background: #f8fbff; }
+.paint-preview h3 { margin: 0 0 .7rem; }
+.paint-preview-row { display: grid; grid-template-columns: minmax(120px, 1.2fr) minmax(70px, auto) minmax(130px, 1fr); gap: .6rem; padding: .52rem 0; border-bottom: 1px solid #e0e9f3; align-items: center; font-size: .85rem; }
+.paint-preview-row strong { text-align: right; white-space: nowrap; }
+.paint-available { color: #2c6b4b; font-size: .75rem; text-align: right; }
+.paint-insufficient { color: #b4232b; font-weight: 600; font-size: .75rem; text-align: right; }
+.paint-panel table th, .paint-panel table td { white-space: nowrap; }
+@media (max-width: 1180px) { .paint-workspace { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .paint-ingredient-row { grid-template-columns: 1fr; } .paint-preview-row { grid-template-columns: 1fr auto; } .paint-preview-row span:last-child { grid-column: span 2; text-align: left; } .paint-panel, .paint-editor { padding: .9rem; } }
