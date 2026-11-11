@@ -52,7 +52,7 @@ export default function PaintFormulasPage() {
 
   useEffect(() => {
     const controller = new AbortController()
-    reload(controller.signal).catch((failure) => {
+    Promise.resolve().then(() => { if (!controller.signal.aborted) return reload(controller.signal) }).catch((failure) => {
       if (!controller.signal.aborted) setError(errorMessage(failure, 'No se pudieron consultar las formulaciones.'))
     }).finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
