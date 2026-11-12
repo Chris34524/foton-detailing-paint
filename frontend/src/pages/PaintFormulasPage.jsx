@@ -74,7 +74,10 @@ export default function PaintFormulasPage() {
           page: next, per_page: 100, active: 1, sort: 'name',
         }, { signal: controller.signal })
         items.push(...result.data.filter((material) =>
-          material.kind !== 'finished_paint' && ['Kg', 'gr'].includes(material.unit)))
+          material.kind !== 'finished_paint' && (
+            ['Kg', 'gr'].includes(material.unit)
+            || (['ml', 'L'].includes(material.unit) && material.density_g_per_ml != null)
+          )))
         end = Number(result.meta?.last_page || 1)
         next += 1
       } while (next <= end)
@@ -221,7 +224,7 @@ export default function PaintFormulasPage() {
             ...value, components: value.components.map((row, i) => i === index ? { ...row, material_id: event.target.value } : row),
           }))}>
             <option value="">Seleccionar materia prima</option>
-            {ingredients.map((material) => <option key={material.id} value={material.id}>{material.code} · {material.name} ({material.unit})</option>)}
+            {ingredients.map((material) => <option key={material.id} value={material.id}>{material.code} · {material.name} ({material.unit}{material.density_g_per_ml != null ? ' · ' + formatQuantity(material.density_g_per_ml) + ' g/ml' : ''})</option>)}
           </select></div>
         <div><label htmlFor={'paint-grams-' + index}>Gramaje (g)</label>
           <input id={'paint-grams-' + index} type="text" inputMode="decimal" required pattern="[0-9]+([.][0-9]{1,2})?"
@@ -281,7 +284,8 @@ export default function PaintFormulasPage() {
           <div className="table-scroll" tabIndex={0} role="region" aria-label="Composición de pintura">
             <table><thead><tr><th>Código</th><th>Materia prima</th><th>Gramaje</th><th>Existencia</th></tr></thead>
               <tbody>{selected.components.map((item) => <tr key={item.material_id}>
-                <td>{item.code}</td><td>{item.name}</td><td>{formatQuantity(item.grams)} g</td><td>{formatQuantity(item.stock_actual)} {item.unit}</td>
+                <td>{item.code}</td><td>{item.name}{item.density_g_per_ml != null && <small className="paint-density-label">Densidad: {formatQuantity(item.density_g_per_ml)} g/ml</small>}</td>
+                <td>{formatQuantity(item.grams)} g</td><td>{formatQuantity(item.stock_actual)} {item.unit}</td>
               </tr>)}</tbody></table>
           </div>
           <p className="paint-total">Fórmula base: <strong>{formatQuantity(selected.total_grams)} g</strong></p>
@@ -307,7 +311,10 @@ export default function PaintFormulasPage() {
               {preview.components.map((row) => <div className="paint-preview-row" key={row.material_id}>
                 <span>{row.name}</span><strong>{formatQuantity(row.grams)} g</strong>
                 <span className={row.sufficient ? 'paint-available' : 'paint-insufficient'}>
-                  Disponible: {formatQuantity(row.available_quantity)} {row.unit} {row.sufficient ? '✓' : '· Insuficiente'}
+                  Descuento: {formatQuantity(row.required_quantity)} {row.unit}
+                  {' · '}Disponible: {formatQuantity(row.available_quantity)} {row.unit}
+                  {row.density_g_per_ml != null && <> · {formatQuantity(row.density_g_per_ml)} g/ml</>}
+                  {row.sufficient ? ' ✓' : ' · Insuficiente'}
                 </span>
               </div>)}
               <p>Entrada del producto terminado: <strong>{formatQuantity(preview.quantity_grams)} g</strong></p>
@@ -320,7 +327,12 @@ export default function PaintFormulasPage() {
           {receipt && <div className="success-message" aria-label="Comprobante de preparación">
             <h3>Lote preparado #{receipt.id}</h3>
             <p>{formatQuantity(receipt.quantity_grams)} g · Entrada <strong>{receipt.output_folio}</strong></p>
-            <ul>{receipt.components.map((item) => <li key={item.material_id}>{item.name}: {formatQuantity(item.grams)} g · {item.movement_folio}</li>)}</ul>
+            <ul>{receipt.components.map((item) => <li key={item.material_id}>
+              {item.name}: {formatQuantity(item.grams)} g
+              {' → '}{formatQuantity(item.inventory_quantity)} {item.inventory_unit}
+              {item.density_g_per_ml_snapshot != null && <> · Densidad {formatQuantity(item.density_g_per_ml_snapshot)} g/ml</>}
+              {' · '}{item.movement_folio}
+            </li>)}</ul>
             <Link to="/materials/movements">Consultar movimientos</Link>
           </div>}
         </>}
