@@ -33,8 +33,9 @@ class PaintFormulationService
         foreach ($rows as $row) {
             $material = $materials->get((int) $row['material_id']);
             if ($material === null || ! $material->is_active || $material->kind !== 'raw_material'
-                || ! in_array($material->unit, ['Kg', 'gr'], true)) {
-                throw ValidationException::withMessages(['components' => 'Solo puedes seleccionar materias primas activas con unidad Kg o gr.']);
+                || (! in_array($material->unit, ['Kg', 'gr'], true)
+                    && (! in_array($material->unit, ['ml', 'L'], true) || $material->density_g_per_ml === null))) {
+                throw ValidationException::withMessages(['components' => 'Selecciona materias primas activas en gr/Kg, o en ml/L con densidad g/ml configurada.']);
             }
             $grams = bcadd((string) $row['grams'], '0', 2);
             $total = bcadd($total, $grams, 2);
@@ -167,7 +168,7 @@ class PaintFormulationService
             if (bccomp($component['grams'], '0', 2) <= 0) {
                 throw ValidationException::withMessages(['quantity_grams' => 'El lote es demasiado pequeño: al menos un pigmento quedaría por debajo de 0.01 g.']);
             }
-            $needed = $this->converter->convert($component['grams'], 'gr', $material->unit);
+            $needed = $this->converter->gramsForStock($component['grams'], $material);
             $available = $material->inventoryBalance?->quantity ?? '0.000000';
             $sufficient = bccomp($available, $needed, 6) >= 0;
             $possible = $possible && $material->is_active && $material->kind === 'raw_material' && $sufficient;
@@ -179,6 +180,7 @@ class PaintFormulationService
                 'required_quantity' => $needed,
                 'available_quantity' => $available,
                 'unit' => $material->unit,
+                'density_g_per_ml' => $material->density_g_per_ml,
                 'sufficient' => $sufficient,
             ];
         }
@@ -228,6 +230,9 @@ class PaintFormulationService
                 if (! $current->is_current) {
                     throw ValidationException::withMessages(['formula' => 'Solo puedes preparar la versión vigente de una pintura.']);
                 }
+                // Congela las densidades de materias primas mientras se calcula y confirma el lote.
+                $componentIds = $current->components()->orderBy('material_id')->pluck('material_id');
+                Material::query()->whereIn('id', $componentIds)->orderBy('id')->lockForUpdate()->get();
                 $preview = $this->preview($current, $quantity);
                 if (! $preview['can_confirm']) {
                     throw ValidationException::withMessages(['components' => 'No hay existencias suficientes o un material ya no está activo. Verifica el desglose.']);
@@ -245,19 +250,22 @@ class PaintFormulationService
                 ]);
                 $movementNote = 'Preparación de pintura #'.$preparation->id.' · Fórmula v'.$current->version;
                 foreach ($preview['components'] as $component) {
+                    $volumeBased = in_array($component['unit'], ['ml', 'L'], true);
+                    $densityNote = $component['density_g_per_ml'] === null ? '' : ' · Densidad '.$component['density_g_per_ml'].' g/ml';
                     $movement = $this->inventory->confirm($actor, [
                         'material_id' => $component['material_id'],
                         'movement_type' => 'exit',
-                        'quantity_original' => $component['grams'],
-                        'unit_original' => 'gr',
+                        'quantity_original' => $volumeBased ? $component['required_quantity'] : $component['grams'],
+                        'unit_original' => $volumeBased ? $component['unit'] : 'gr',
                         'area_destination' => $input['area_destination'] ?? null,
-                        'notes' => $movementNote,
+                        'notes' => $movementNote.' · '.$component['grams'].' g'.$densityNote,
                         'idempotency_key' => (string) Str::uuid(),
                     ], null, 'paint_preparation')['movement'];
                     $preparation->components()->create([
                         'material_id' => $component['material_id'],
                         'inventory_movement_id' => $movement->id,
                         'grams' => $component['grams'],
+                        'density_g_per_ml_snapshot' => $component['density_g_per_ml'],
                     ]);
                 }
                 $finished = $this->inventory->confirm($actor, [
