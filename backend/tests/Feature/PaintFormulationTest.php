@@ -145,6 +145,72 @@ class PaintFormulationTest extends OperationsTestCase
         $this->patchJson('/api/materials/'.$productId, ['name' => 'Cambio'])->assertUnprocessable();
     }
 
+    public function test_densities_convert_ml_and_litre_stocks_to_grams_with_audited_ledger_deductions(): void
+    {
+        $this->administrator();
+        $base = Material::factory()->create(['unit' => 'ml', 'density_g_per_ml' => '1.250000']);
+        $pigment = Material::factory()->create(['unit' => 'L', 'density_g_per_ml' => '0.800000']);
+        $this->fundMaterial($base, '200');
+        $this->fundMaterial($pigment, '1');
+
+        $recipe = $this->formulaPayload([
+            ['material_id' => $base->id, 'grams' => '125.00'],
+            ['material_id' => $pigment->id, 'grams' => '200.00'],
+        ]);
+        $formulaId = $this->postJson('/api/paint-formulas', $recipe)
+            ->assertCreated()->assertJsonPath('data.components.0.density_g_per_ml', '1.250000')
+            ->assertJsonPath('data.components.1.density_g_per_ml', '0.800000')->json('data.id');
+
+        $this->postJson('/api/paint-formulas/'.$formulaId.'/preview', ['quantity_grams' => '325.00'])
+            ->assertOk()->assertJsonPath('components.0.grams', '125.00')
+            ->assertJsonPath('components.0.required_quantity', '100.000000')
+            ->assertJsonPath('components.0.unit', 'ml')
+            ->assertJsonPath('components.1.grams', '200.00')
+            ->assertJsonPath('components.1.required_quantity', '0.250000')
+            ->assertJsonPath('components.1.unit', 'L')->assertJsonPath('can_confirm', true);
+
+        $payload = ['quantity_grams' => '325.00', 'idempotency_key' => (string) Str::uuid()];
+        $this->postJson('/api/paint-formulas/'.$formulaId.'/prepare', $payload)
+            ->assertCreated()->assertJsonPath('data.components.0.density_g_per_ml_snapshot', '1.250000')
+            ->assertJsonPath('data.components.0.inventory_quantity', '100.000000')
+            ->assertJsonPath('data.components.0.inventory_unit', 'ml')
+            ->assertJsonPath('data.components.1.density_g_per_ml_snapshot', '0.800000')
+            ->assertJsonPath('data.components.1.inventory_quantity', '0.250000')
+            ->assertJsonPath('data.components.1.inventory_unit', 'L');
+
+        $this->assertSame('100.000000', $base->fresh()->inventoryBalance->quantity);
+        $this->assertSame('0.750000', $pigment->fresh()->inventoryBalance->quantity);
+        $product = PaintFormula::findOrFail($formulaId)->product;
+        $this->assertSame('325.000000', $product->fresh()->inventoryBalance->quantity);
+        $this->getJson('/api/materials/'.$base->id.'/stock')
+            ->assertOk()->assertJsonPath('reconciliation.reconciled', true);
+        $this->getJson('/api/materials/'.$pigment->id.'/stock')
+            ->assertOk()->assertJsonPath('reconciliation.reconciled', true);
+
+        $this->patchJson('/api/materials/'.$base->id, ['density_g_per_ml' => '1.200000'])
+            ->assertUnprocessable()->assertJsonValidationErrors('density_g_per_ml');
+        $this->postJson('/api/paint-formulas/'.$formulaId.'/prepare', $payload)
+            ->assertOk()->assertJsonPath('idempotent_replay', true);
+        $this->assertDatabaseCount('paint_preparations', 1);
+        $this->assertDatabaseCount('inventory_movements', 5);
+    }
+
+    public function test_density_conversion_rounds_stock_deduction_up_to_six_decimals(): void
+    {
+        $this->administrator();
+        $liquid = Material::factory()->create(['unit' => 'ml', 'density_g_per_ml' => '1.100000']);
+        $this->fundMaterial($liquid, '10');
+        $formulaId = $this->postJson('/api/paint-formulas', $this->formulaPayload([
+            ['material_id' => $liquid->id, 'grams' => '1.00'],
+        ]))->assertCreated()->json('data.id');
+        $this->postJson('/api/paint-formulas/'.$formulaId.'/preview', ['quantity_grams' => '1.00'])
+            ->assertOk()->assertJsonPath('components.0.required_quantity', '0.909091');
+        $this->postJson('/api/paint-formulas/'.$formulaId.'/prepare', [
+            'quantity_grams' => '1.00', 'idempotency_key' => (string) Str::uuid(),
+        ])->assertCreated()->assertJsonPath('data.components.0.inventory_quantity', '0.909091');
+        $this->assertSame('9.090909', $liquid->fresh()->inventoryBalance->quantity);
+    }
+
     public function test_largest_remainder_keeps_exact_two_decimal_mass_and_finished_paint_is_consumed_with_vin(): void
     {
         $this->administrator();
