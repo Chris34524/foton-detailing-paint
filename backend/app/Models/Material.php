@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['code', 'name', 'description', 'unit', 'minimum_stock', 'maximum_stock', 'location', 'supplier', 'notes', 'warehouse_reference', 'is_active'])]
+#[Fillable(['code', 'name', 'description', 'unit', 'minimum_stock', 'maximum_stock', 'location', 'supplier', 'notes', 'warehouse_reference', 'is_active', 'density_g_per_ml'])]
 class Material extends Model
 {
     /** @use HasFactory<MaterialFactory> */
