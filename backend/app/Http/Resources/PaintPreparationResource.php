@@ -28,6 +28,9 @@ class PaintPreparationResource extends JsonResource
                 'code' => $item->movement->material_code_snapshot,
                 'name' => $item->movement->material_name_snapshot,
                 'grams' => $item->grams,
+                'density_g_per_ml_snapshot' => $item->density_g_per_ml_snapshot,
+                'inventory_quantity' => $item->movement->quantity_equivalent,
+                'inventory_unit' => $item->movement->unit_snapshot,
                 'movement_folio' => $item->movement->folio,
             ])->values()->all(),
         ];
