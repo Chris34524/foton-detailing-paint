@@ -36,6 +36,7 @@ class WorkOrderService
                 $order->diagnosis()->associate($source);
                 $order->createdBy()->associate($creator);
                 $order->save();
+                app(ProcessFlowService::class)->snapshot($order);
 
                 return $order;
             }, 3);

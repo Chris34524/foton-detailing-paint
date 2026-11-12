@@ -58,14 +58,14 @@ export default function WorkOrdersPage({ queue = false }) {
       <div className="form-actions"><button className="primary-button">Aplicar filtros</button><button type="button" onClick={() => setParams({})}>Limpiar filtros</button></div>
     </form>
     <div className="form-actions queue-shortcuts" aria-label="Filtros rápidos">
-      <button onClick={() => quickFilter()}>Todos{queue ? ' activos' : ''}</button>
-      <button onClick={() => quickFilter('unassigned')}>Sin asignar</button><button onClick={() => quickFilter('assigned')}>Asignados</button>
-      <button onClick={() => quickFilter(null, true)}>Mis trabajos</button>
+      <button type="button" aria-pressed={!params.get("assignment") && !params.get("assigned_to")} onClick={() => quickFilter()}>Todos{queue ? ' activos' : ''}</button>
+      <button type="button" aria-pressed={params.get("assignment") === "unassigned" && !params.get("assigned_to")} onClick={() => quickFilter('unassigned')}>Sin asignar</button><button type="button" aria-pressed={params.get("assignment") === "assigned" && !params.get("assigned_to")} onClick={() => quickFilter('assigned')}>Asignados</button>
+      <button type="button" aria-pressed={params.get("assigned_to") === String(user.id)} onClick={() => quickFilter(null, true)}>Mis trabajos</button>
     </div>
     {(metadata.isLoading || collection.isLoading) && <p role="status">Cargando trabajos…</p>}
     {collection.data && <>
       {collection.data.data.length === 0 ? <div className="empty-state"><h2>No hay trabajos para mostrar</h2><p>Ajusta los filtros o genera una orden desde un diagnóstico con defectos.</p></div>
-        : <div className="table-scroll"><table><caption className="sr-only">{queue ? 'Cola de trabajos activos' : 'Listado de órdenes de trabajo'}</caption>
+        : <div className="table-scroll" tabIndex={0} role="region" aria-label="Tabla de registros"><table><caption className="sr-only">{queue ? 'Cola de trabajos activos' : 'Listado de órdenes de trabajo'}</caption>
           <thead><tr><th>ID</th><th>VIN</th><th>Modelo</th><th>Prioridad</th><th>Estado</th><th>Operador</th><th>Fecha de creación</th><th>Detalle</th></tr></thead>
           <tbody>{collection.data.data.map((order) => <tr key={order.id}>
             <td>{order.id}</td><td className="vin-value">{order.unit.vin}</td><td>{order.unit.model || '—'}</td>

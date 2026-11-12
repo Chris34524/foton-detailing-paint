@@ -47,7 +47,7 @@ Sanctum authenticates the first-party SPA through Laravel session cookies. Login
 
 The `/api/auth/*` endpoints are declared in `routes/web.php` under an API prefix, so Laravel's web middleware always starts the session and validates CSRF, including requests without a trusted SPA origin. Protected endpoints use `auth:sanctum`. The API middleware also enables Sanctum's `statefulApi()` for future module routes; authentication endpoints use one web session pipeline.
 
-The SPA restores the session through `/api/auth/me` on startup and withholds protected content until that request completes. Protected routes redirect guests to `/login`; authenticated users land on `/dashboard`. The authenticated payload contains the user's ID, name, email, roles, and effective permissions. Frontend authorization helpers support interface decisions; backend Gate, middleware, and policies enforce access.
+The SPA restores the session through `/api/auth/me` on startup and withholds protected content until that request completes. Protected routes redirect guests to `/login`; authenticated users currently land on `/materials` while the temporary Materials-only interface is active. The authenticated payload contains the user's ID, name, email, roles, and effective permissions. Frontend authorization helpers support interface decisions; backend Gate, middleware, and policies enforce access.
 
 Spatie Permission uses the `web` guard, with centralized `App\Enums\Role` and `App\Enums\Permission` definitions and an idempotent `RolePermissionSeeder`. The initial roles are:
 
@@ -88,7 +88,7 @@ List filters are `search`, `vin`, `model`, `status`, and `location`. VIN/model/s
 
 `UnitStatus` defines `registered`, `in_diagnosis`, `in_process`, `inspection`, `rework`, `ready_for_release`, `released`, and `blocked`. React obtains labels/options from the meta endpoint and resource rather than maintaining an independent status list. Any valid status can be selected in this phase; transition rules, status/location history, and plant catalogs are deferred.
 
-The authenticated navigation provides Dashboard, Unidades, and logout. `/units` and `/units/:unitId` require `units.view`; `/units/new` requires `units.create`. The list supports direct VIN lookup, explicit filter application reflected in URL parameters, and server pagination. Detail editing requires `units.update`; viewers receive read-only details. Existing role-permission baselines are unchanged, so normal registration/edit access belongs to admin and Super Admin unless permissions are explicitly assigned separately. Frontend checks support UX; the API always enforces policies and CSRF protection.
+The temporary primary navigation exposes only Materiales and logout. Other module routes and backend capabilities remain implemented for later reactivation. `/units` and `/units/:unitId` require `units.view`; `/units/new` requires `units.create`. The list supports direct VIN lookup, explicit filter application reflected in URL parameters, and server pagination. Detail editing requires `units.update`; viewers receive read-only details. Existing role-permission baselines are unchanged, so normal registration/edit access belongs to admin and Super Admin unless permissions are explicitly assigned separately. Frontend checks support UX; the API always enforces policies and CSRF protection.
 
 ## Diagnosis
 
@@ -180,6 +180,126 @@ The SPA adds `/work-orders`, `/work-orders/queue`, and `/work-orders/:workOrderI
 Supervisor retains view/create/update/assign; Operator retains view only; Inspector gains no Work Order permissions. Operators can read the necessary source Diagnosis/Defects inside Work Order detail. The existing authenticated evidence endpoint additionally allows `work_orders.view` only when that Diagnosis has a Work Order; it does not grant general Diagnosis browsing/editing, catalog access, or evidence upload. Nested evidence binding and private storage protections remain unchanged.
 
 No automatic Unit status transitions, Process sequencing, Time Tracking, Material consumption, Inspection workflow, notifications, audit timeline, or SSO LDRH are implemented in Phase 5.
+
+
+## Processes, materials and inspection
+
+Phases 6, 8 and 9 extend the operational container without implementing Phase 7 Time Tracking. Upgrade existing Phase 5 installations with `docker compose exec backend php artisan migrate`. The additive operations migration creates the domain tables, history-preserving foreign keys, and the nullable Work Order current-step pointer. It adds no production master data, operators, checklists or operational records. Existing role grants and permission names are unchanged.
+
+### Process catalog and sequence
+
+`Process` codes are trimmed/uppercased, unique and limited to 80 characters; names allow 160 characters and descriptions 5,000 plain-text characters. Records are activated/deactivated rather than deleted. Remove a process from the global sequence before deactivating it.
+
+`ProcessSequenceStep` defines up to 100 ordered, distinct active processes. A transaction replaces the configuration without temporary unique-position collisions. A dedicated `operation_mutexes` infrastructure row serializes sequence replacement, catalog changes and snapshot reads, including an empty configuration; it is not business master data.
+
+New Work Orders snapshot the configured sequence into `WorkOrderProcessStep`, preserving process code/name and position. Existing snapshots never change when the catalog is renamed or the global sequence is reordered. The first snapshot step becomes `currentProcessStep`. The next step is the first greater position within that same snapshot; the final step has no next step. Generation without a sequence still succeeds with `process_flow_initialized=false` and no pointer. Existing Work Orders can be explicitly initialized once by a process manager, including historical orders; initialization changes sequence metadata only.
+
+| API endpoint | Authorization |
+| --- | --- |
+| `GET /api/processes`, `GET /api/processes/{process}` | `processes.view` |
+| `POST /api/processes`, `PATCH /api/processes/{process}` | `processes.manage` |
+| `GET /api/process-sequence` | `processes.view` |
+| `PUT /api/process-sequence` with `process_ids` | `processes.manage` |
+| `GET /api/work-orders/{workOrder}/process-flow` | Work Order visibility |
+| `POST /api/work-orders/{workOrder}/process-flow/initialize` | `processes.manage` |
+
+`/processes` provides catalog search, pagination, activation/editing and explicit sequence ordering. Work Order detail displays the current/next process and historical sequence. No process advancement, activity, pause/resume, duration or timer API is implemented; Phase 7 can later attach timing records to the existing step IDs.
+
+### Paint formulation and batch preparation
+
+### Optional material density (ml to grams)
+
+When registering or editing an ordinary raw material with inventory unit `ml` or `L`, **Habilitar conversión opcional de ml a g por densidad** can be enabled. This saves a positive `density_g_per_ml` with up to six decimals (e.g., `1.250000` g/ml); leave the option disabled to keep the field null. No historical inventory entries are converted or rewritten, and existing materials remain valid without density.
+
+For a volumetric raw material with configured density, paint recipes continue to specify *grams*, while the backend calculates the actual inventory deduction in `ml` or `L`: millilitres = ingredient grams / density (g/ml), then litres = millilitres / 1000 as needed. Deductions round **up** to the canonical ledger precision of six decimals to prevent understating consumption. A batch receipt permanently stores both grams and the applied density plus the actual volume deducted. Density cannot be changed after the material has participated in a confirmed paint preparation, preserving traceability.
+
+Other inventory operations still use their existing unit-family conversions; without density, a liquid material remains usable in inventory but cannot be added to a paint recipe requiring grams. Do not assume all liquids have the density of water: enter a verified value from the technical data sheet or a reliable measurement. Update with `docker compose exec backend php artisan migrate` to add the nullable material-density and lot-snapshot columns.
+
+The Materials workspace includes **Formulación de Pintura** at `/materials/paint-formulas`. A recipe identifies a vehicle model, paint color and unique manufacturer/color code. Its components are selected from active inventory raw materials in `gr` or `Kg`, with **exact 0.01 g recipe precision**. Liter/milliliter stocks are deliberately excluded from recipes until calibrated per-material density is available: mass and volume cannot safely be converted without density.
+
+Creating a formula automatically creates a separate finished-paint `Material` with its own sequential `PROD-XXX` code and inventory unit `gr`. Recipes are immutable snapshots; publishing a new version changes only the current flag and copies all ingredient lines into a new version. Existing preparation history stays linked to the original version. Users with `materials.view` can browse recipes; `materials.manage` is required to create versions or prepare batches.
+
+Each batch starts with a read-only calculation of gram allocations. A largest-remainder algorithm allocates 0.01 g increments deterministically while conserving the requested finished mass. The backend rejects batches where an ingredient rounds below 0.01 g, lacks stock, is inactive or the output would exceed inventory limits. Confirmation uses one database transaction to write every ingredient `MOV-XXXX` exit, one finished-paint `MOV-XXXX` entry, updated balances, a versioned batch record, immutable movement links and a unique UUID idempotency key. Any failure rolls the whole batch back. An identical retry returns the same receipt; conflicting retries are rejected.
+
+Finished paint cannot receive manual inventory entries or adjustments: stock increases only through confirmed preparation. Application/consumption of finished paint uses the Work Order materials-consumption endpoint to preserve VIN traceability. Existing materials and historic movements remain unchanged.
+
+API: `GET/POST /api/paint-formulas`; `GET /api/paint-formulas/{formula}`; `GET/POST /api/paint-formulas/{formula}/versions`; `POST /api/paint-formulas/{formula}/preview`; `POST /api/paint-formulas/{formula}/prepare`; `GET /api/paint-preparations`. Execute `docker compose exec backend php artisan migrate` when updating to install the additive paint-formulation tables.
+
+### Materials, inventory and consumption
+
+The current development UI temporarily exposes Materials only in the main navigation. To create a local Materials user without committing a password, run `docker compose exec backend php artisan db:seed --class=RolePermissionSeeder` and then `docker compose exec backend php artisan materials:provision-local-user jose.barajas@ldrsolutions.com.mx --name="José Barajas"`; enter the password privately at the prompt. This is blocked outside `APP_ENV=local`. Temporary passwords must be changed before production. After pulling the branch, run `docker compose exec backend php artisan migrate` to install the additive numbering sequence migration. Historical product and movement codes are not silently renumbered.
+
+
+`Material` receives a server-assigned sequential code (`PROD-001`, `PROD-002`, ...), never accepted from client POST/PATCH. Legacy codes retain their values. The model retains its unique uppercase code, name, description, active flag and optional `warehouse_reference`. Inventory adds nullable `minimum_stock` / `maximum_stock`, physical `location`, `supplier` and notes. Parameters are nonnegative and maximum must be at least minimum when both exist. Location belongs to the component; destination belongs to a movement. There is no directly editable stock field or material deletion API. The canonical unit cannot change after any inventory or consumption history.
+
+Backend metadata defines the eight canonical units `Kg, L, ml, Pza, gr, cm, mts, hojas`, movement types and destinations `Pintura 1, Pintura 2, Lavado`. Compatible conversions use exact BCMath arithmetic: L↔ml and Kg↔gr at 1000, mts↔cm at 100, and identity conversions for Pza/hojas. All inventory quantities use `DECIMAL(18,6)`, with at most 12 integer and 6 fractional digits. Send quantities as decimal JSON strings (integers are also accepted); floating-point JSON numbers, exponential notation, incompatible dimensions, overflow and conversions requiring more than six canonical decimals are rejected rather than rounded.
+
+`InventoryMovement` is the immutable stock ledger. `InventoryBalance` is its reconcilable query cache, never an independent source of stock. A unique opening movement can precede all other movements; entries and positive adjustments increase stock, exits and negative adjustments decrease it. Adjustments require a reason. Confirmed movements preserve original quantity/unit, converted/signed quantity, material snapshots, stock before/after, session actor and server time. Corrections use compensating movements; there are no PATCH/DELETE movement endpoints.
+
+A single domain service authorizes, locks the Work Order when applicable, locks the Material/balance, converts, rejects negative stock, allocates the folio and commits the movement/balance/optional consumption together. A drifted or missing nonzero balance fails closed until reconciliation. New folios are server-generated `MOV-0001` (legacy `LDR-DP-*` records retain their historical folios), increasing beyond four digits when necessary, protected by a locked transactional sequence and unique database constraint. No MAX+1 or client folio is accepted. Rolled-back allocations are not committed; committed folios are never renumbered/reused. Any future sequence gaps must be retained, not filled by reusing historical numbers.
+
+Every movement and Work Order consumption POST requires a UUID `idempotency_key`. Retry the same intent with the same key: HTTP 201 creates it, HTTP 200 returns the existing receipt with `idempotent_replay=true`. Reusing a key with another payload, actor or context returns 422. React retains the key for retries, including uncertain network/5xx outcomes. Confirmation recalculates the backend preview under locks; preview does not reserve stock.
+
+Stock is opening + entries + positive adjustments − exits − negative adjustments. States use this precedence: missing minimum or maximum → SIN PARÁMETROS; below minimum → CRÍTICO; above maximum → SOBRESTOCK; minimum through 120% of minimum inclusive → REORDEN; otherwise OK. Percentage is stock/max × 100 when max > 0, otherwise null. The backend supplies labels and recommended actions; React does not calculate stock or conversion arithmetic.
+
+| API endpoint | Authorization |
+| --- | --- |
+| `GET /api/materials`, `GET /api/materials/{material}` | `materials.view` |
+| `POST /api/materials`, `PATCH /api/materials/{material}` | `materials.manage` |
+| `GET /api/materials/meta`, `GET /api/materials/inventory/dashboard` | `materials.view` |
+| `GET /api/materials/{material}/stock`, `GET /api/materials/{material}/movements` | `materials.view` |
+| `GET /api/materials/{material}/quantity-preview` | `materials.view` |
+| `GET /api/inventory-movements`, `GET /api/inventory-movements/{movement}` | `materials.view` |
+| `POST /api/inventory-movements` | `materials.manage`, or `materials.consume` for exits only |
+| `GET /api/material-consumptions`, `GET /api/work-orders/{workOrder}/material-consumptions` | `materials.view` |
+| `POST /api/work-orders/{workOrder}/material-consumptions` | `materials.consume` plus Work Order visibility |
+| `GET /api/integrations/warehouse/v1/materials`, `GET /api/integrations/warehouse/v1/material-consumptions` | `materials.manage` |
+
+Movement POST fields: `material_id, movement_type, quantity_original, unit_original, area_destination?, notes?, idempotency_key`. Types are `opening_balance, entry, exit, adjustment_in, adjustment_out`. Movement lists filter by material, type, destination, code/name/folio search and inclusive UTC calendar dates `date_from/date_to`. Sorting is allowlisted; pagination defaults to 20, maximum 100. Material lists additionally filter by `stock_status`, activity and canonical unit.
+
+Consumption accepts `material_id, quantity, unit_original?, work_order_process_step_id?, area_destination?, notes?, external_reference?, idempotency_key`. An omitted original unit uses the material canonical unit. Only active materials and non-terminal orders are accepted. Optional process steps must belong to the order. Exactly one linked inventory exit and one MaterialConsumption are persisted atomically, protected by a unique movement link. Consumption stores canonical quantity; its movement preserves the original input. Stock counts the movement once and never separately subtracts consumption. VIN remains derived through Work Order → Diagnosis → Unit, without an editable duplicate VIN. Material use does not change inspection/release status.
+
+Warehouse v1 retains `contract_version: "1"`, stable IDs, references, pagination and inclusive UTC `updated_since`. Material resources now include calculated stock/parameters/status; movements touch the material timestamp so incremental consumers receive balance changes. Consumption includes its linked movement or explicit `inventory_tracking=legacy_untracked`. Consumers should upsert by stable ID and tolerate repeated boundary records. These are authenticated read contracts only: external connectivity, machine authentication and stock synchronization remain deferred.
+
+The additive inventory migration normalizes known legacy unit aliases and widens consumption precision. Existing consumption snapshots remain unchanged with a null movement link and the legacy label. It does not fabricate historical stock, movements or spreadsheet sample data. Establish verified real opening stock explicitly; legacy consumption must not be deducted again.
+
+Reconcile the cache using `docker compose exec backend php artisan inventory:reconcile` (nonzero exit on mismatch). Scope with `--material=ID`; add `--repair` to rebuild cached quantity and component totals from the exact immutable ledger, without adding movements. Back up database history before an upgrade. Rolling back inventory removes the new ledger/schema and narrows quantity precision; it is not an operational correction workflow.
+
+The SPA provides `/materials` inventory/catalog, `/materials/movements`, `/materials/movements/new`, immutable movement detail and `/materials/inventory/dashboard`. The standalone consumptions page is temporarily hidden; Work Order consumption and its API remain functional. Inventory has server search/status/unit dropdown filters; movements have code/name/folio search, date/type/destination filters and a wide scrollable table. The dashboard shows all five states and action alerts, refreshed after mutations and on window focus. Movement and Work Order forms display read-only backend equivalence, compatible units and available stock, then the confirmed server folio/actor/time/balance. Permission-specific controls retain authoritative backend policies.
+
+### Inspection, automatic rework and release
+
+Only completed Work Orders can receive inspections. Inspector users select completed orders through `GET /api/inspection/work-orders` using `inspection.execute`, without gaining general Work Order visibility or management permissions.
+
+Checklists and criteria are configurable, activated/deactivated and never deleted through the API. Criteria have unique codes/positions per checklist, explicit required flags and transactional ordering. Inspection creation requires an active checklist with active criteria, locks the Work Order, and snapshots checklist name plus active criteria code/label/description/order/required flags. Subsequent catalog edits do not change inspection meaning. One draft per Work Order is protected by row locks and a unique generated draft key; multiple completed inspections are allowed.
+
+Draft answers are `compliant` / Cumple or `non_compliant` / No cumple, with nullable plain-text comments up to 2,000 characters. Inspection notes allow 5,000 plain-text characters. Required unanswered criteria prevent completion. The server computes the overall result from required criteria: any required No cumple produces `failed`; otherwise it produces `passed`. Optional unanswered/non-compliant criteria do not override this rule.
+
+Failed completion requires a trimmed plain-text `rework_cause` up to 5,000 characters. The same transaction creates exactly one `Rework` for that Inspection and sets Unit.status to `rework`. A later passed inspection resolves open reworks for its Work Order and sets the Unit to `ready_for_release`. Completed inspections are immutable; reinspection creates another record. These operations do not reopen a Work Order, generate another Work Order, change Diagnosis/Defects, or model corrective time/activity.
+
+| API endpoint | Authorization |
+| --- | --- |
+| `GET /api/inspection/checklists`, `GET /api/inspection/checklists/{checklist}` | `inspection.view`, `inspection.execute` or `inspection.manage` |
+| `POST /api/inspection/checklists`, `PATCH /api/inspection/checklists/{checklist}` | `inspection.manage` |
+| `POST /api/inspection/checklists/{checklist}/items` | `inspection.manage` |
+| `PATCH /api/inspection/checklists/{checklist}/items/{item}` | `inspection.manage`; scoped ownership |
+| `PUT /api/inspection/checklists/{checklist}/item-order` with all `item_ids` | `inspection.manage` |
+| `GET /api/inspections`, `GET /api/inspections/{inspection}` | `inspection.view` |
+| `GET /api/work-orders/{workOrder}/inspections` | `inspection.view` |
+| `POST /api/work-orders/{workOrder}/inspections` | `inspection.execute` |
+| `PATCH /api/inspections/{inspection}` | `inspection.execute`; draft notes/items only |
+| `POST /api/inspections/{inspection}/complete` | `inspection.execute`; optional/required cause determined by answers |
+| `POST /api/inspections/{inspection}/release` | `release.execute` |
+
+Draft PATCH accepts `items: [{id, result, comment}]`, where each ID belongs to that Inspection's snapshotted result rows. Creation accepts `inspection_checklist_id` and optional notes. Completion accepts only `rework_cause`; overall results, actors and timestamps are server controlled.
+
+Release requires all six backend checks: completed Inspection, passed result, latest completed Inspection for its Work Order (completion time then ID), completed Work Order, no open Rework for that Work Order, and no previous release for that Inspection. The transaction creates `UnitRelease` with the session actor/time and sets the Unit to `released`. Inspection uniqueness and Unit/Work Order row locks protect concurrent creation/completion/release; duplicate attempts return clean 422 responses. Unit IDs are not globally unique in releases, allowing later lifecycle releases. The existing Phase 3 manual Unit editing API remains unchanged; formal release records can only be created through this validated workflow.
+
+`/inspections`, `/inspections/:inspectionId`, `/inspections/new`, nested Work Order inspection routes, and `/inspection/checklists` provide listing, creation, configuration, execution, automatic rework display and release validation. The UI displays backend result options, required-answer summaries, historical failed criteria and release checks. Catalog and mutation actions are permission-specific; backend policies remain authoritative.
+
+All operational lists use server pagination (default 20, maximum 100), safe sort allowlists and deterministic ID ties. Catalogs support search/activity filters; materials also filter by unit. Consumption supports VIN/work-order/search filters and inspections support Work Order/status/search filters. All writes retain Sanctum SPA sessions/CSRF, reject unsupported actor/parent fields and use safe API errors. Historical records use restrictive FKs; removed user accounts leave nullable actor references.
+
+Phase 7 Time Tracking and Phase 10 generic traceability/event infrastructure remain deferred. No timer/activity tables, production Warehouse connection, generic timeline, notifications or SSO LDRH are added.
 
 
 ## Validation

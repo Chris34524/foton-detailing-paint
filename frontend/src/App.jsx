@@ -16,13 +16,23 @@ import DiagnosisCreatePage from './pages/DiagnosisCreatePage'
 import DiagnosisDetailPage from './pages/DiagnosisDetailPage'
 import DefectTypesPage from './pages/DefectTypesPage'
 import WorkOrdersPage from './pages/WorkOrdersPage'
+import OperationsCatalogPage from './pages/OperationsCatalogPage'
+import InventoryMovementsPage from './pages/InventoryMovementsPage'
+import InventoryMovementCreatePage from './pages/InventoryMovementCreatePage'
+import InventoryMovementDetailPage from './pages/InventoryMovementDetailPage'
+import InventoryDashboardPage from './pages/InventoryDashboardPage'
+import PaintFormulasPage from './pages/PaintFormulasPage'
+import InspectionsPage from './pages/InspectionsPage'
+import InspectionCreatePage from './pages/InspectionCreatePage'
+import InspectionDetailPage from './pages/InspectionDetailPage'
+import { operationsPermissions } from './operations/permissions'
 import WorkOrderDetailPage from './pages/WorkOrderDetailPage'
 import { workOrderPermissions } from './workOrders/permissions'
 
 export function AppRoutes() {
   const { isLoading, sessionError, refreshUser } = useAuth()
 
-  if (isLoading) return <main className="status-panel" role="status">Verificando sesión…</main>
+  if (isLoading) return <main className="status-panel" role="status"><span className="loading-spinner" aria-hidden="true" />Verificando sesión…</main>
 
   if (sessionError) {
     return (
@@ -46,6 +56,29 @@ export function AppRoutes() {
           <Route element={<PermissionRoute permission={unitPermissions.create} />}>
             <Route path="/units/new" element={<UnitCreatePage />} />
           </Route>
+          <Route element={<PermissionRoute permission={operationsPermissions.processesView} />}>
+            <Route path="/processes" element={<OperationsCatalogPage key="processes" kind="processes" />} />
+          </Route>
+          <Route element={<PermissionRoute permission={operationsPermissions.materialsView} />}>
+            <Route path="/materials" element={<OperationsCatalogPage key="materials" kind="materials" />} />
+            <Route path="/materials/movements" element={<InventoryMovementsPage />} />
+            <Route path="/materials/movements/new" element={<InventoryMovementCreatePage />} />
+            <Route path="/materials/movements/:movementId" element={<InventoryMovementDetailPage />} />
+            <Route path="/materials/inventory/dashboard" element={<InventoryDashboardPage />} />
+            <Route path="/materials/paint-formulas" element={<PaintFormulasPage />} />
+          </Route>
+          <Route element={<PermissionRoute permission={operationsPermissions.inspectionView} />}>
+            <Route path="/inspections" element={<InspectionsPage />} />
+            <Route path="/inspections/:inspectionId" element={<InspectionDetailPage />} />
+            <Route path="/work-orders/:workOrderId/inspections" element={<InspectionsPage />} />
+          </Route>
+          <Route element={<PermissionRoute permission={operationsPermissions.inspectionExecute} />}>
+            <Route path="/inspections/new" element={<InspectionCreatePage />} />
+            <Route path="/work-orders/:workOrderId/inspections/new" element={<InspectionCreatePage />} />
+          </Route>
+          <Route element={<PermissionRoute permission={operationsPermissions.inspectionManage} />}>
+            <Route path="/inspection/checklists" element={<OperationsCatalogPage key="checklists" kind="checklists" />} />
+          </Route>
           <Route element={<PermissionRoute permission={workOrderPermissions.view} />}>
             <Route path="/work-orders" element={<WorkOrdersPage />} />
             <Route path="/work-orders/queue" element={<WorkOrdersPage queue />} />
@@ -64,7 +97,7 @@ export function AppRoutes() {
           </Route>
         </Route>
       </Route>
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/materials" replace />} />
     </Routes>
   )
 }
