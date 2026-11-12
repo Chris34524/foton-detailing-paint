@@ -439,3 +439,10 @@ td button { min-height: 34px; font-size: .76rem; padding: .4rem .65rem; }
 .paint-version-history { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; margin-bottom: 1rem; }
 .paint-version-history span { color: var(--muted); font-size: .8rem; margin-right: .2rem; }
 .paint-version-history button { min-height: 32px; padding: .32rem .6rem; font-size: .76rem; }
+
+/* Conversión opcional para insumos volumétricos con densidad conocida. */
+.material-density { margin-top: 1rem; padding: .95rem 1.1rem; border: 1px solid var(--line); border-radius: 9px; background: var(--soft); }
+.material-density .checkbox-field { margin: 0; }
+.material-density .form-grid { align-items: center; }
+.material-density-example { display: grid; gap: .25rem; color: #145783; font-size: .9rem; font-weight: 700; }
+.paint-density-label { display: block; font-size: .73rem; color: var(--muted); font-weight: 400; margin-top: .2rem; }
