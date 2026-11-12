@@ -27,7 +27,7 @@ class Material extends Model
 
     protected function casts(): array
     {
-        return ['is_active' => 'boolean', 'minimum_stock' => 'decimal:6', 'maximum_stock' => 'decimal:6'];
+        return ['is_active' => 'boolean', 'minimum_stock' => 'decimal:6', 'maximum_stock' => 'decimal:6', 'density_g_per_ml' => 'decimal:6'];
     }
 
     protected function unit(): Attribute
