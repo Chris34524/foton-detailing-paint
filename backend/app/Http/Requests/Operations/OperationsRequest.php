@@ -10,7 +10,7 @@ abstract class OperationsRequest extends FormRequest
 {
     protected function prepareForValidation(): void
     {
-        foreach (['code', 'name', 'label', 'description', 'unit', 'warehouse_reference', 'notes', 'external_reference', 'search', 'vin', 'rework_cause', 'area_destination', 'unit_original', 'quantity_original', 'quantity', 'minimum_stock', 'maximum_stock'] as $field) {
+        foreach (['code', 'name', 'label', 'description', 'unit', 'warehouse_reference', 'notes', 'external_reference', 'search', 'vin', 'rework_cause', 'area_destination', 'unit_original', 'quantity_original', 'quantity', 'minimum_stock', 'maximum_stock', 'density_g_per_ml'] as $field) {
             if (is_string($this->input($field))) {
                 $value = trim($this->input($field));
                 if ($field === 'code' || $field === 'vin') {
