@@ -207,6 +207,14 @@ New Work Orders snapshot the configured sequence into `WorkOrderProcessStep`, pr
 
 ### Paint formulation and batch preparation
 
+### Optional material density (ml to grams)
+
+When registering or editing an ordinary raw material with inventory unit `ml` or `L`, **Habilitar conversión opcional de ml a g por densidad** can be enabled. This saves a positive `density_g_per_ml` with up to six decimals (e.g., `1.250000` g/ml); leave the option disabled to keep the field null. No historical inventory entries are converted or rewritten, and existing materials remain valid without density.
+
+For a volumetric raw material with configured density, paint recipes continue to specify *grams*, while the backend calculates the actual inventory deduction in `ml` or `L`: millilitres = ingredient grams / density (g/ml), then litres = millilitres / 1000 as needed. Deductions round **up** to the canonical ledger precision of six decimals to prevent understating consumption. A batch receipt permanently stores both grams and the applied density plus the actual volume deducted. Density cannot be changed after the material has participated in a confirmed paint preparation, preserving traceability.
+
+Other inventory operations still use their existing unit-family conversions; without density, a liquid material remains usable in inventory but cannot be added to a paint recipe requiring grams. Do not assume all liquids have the density of water: enter a verified value from the technical data sheet or a reliable measurement. Update with `docker compose exec backend php artisan migrate` to add the nullable material-density and lot-snapshot columns.
+
 The Materials workspace includes **Formulación de Pintura** at `/materials/paint-formulas`. A recipe identifies a vehicle model, paint color and unique manufacturer/color code. Its components are selected from active inventory raw materials in `gr` or `Kg`, with **exact 0.01 g recipe precision**. Liter/milliliter stocks are deliberately excluded from recipes until calibrated per-material density is available: mass and volume cannot safely be converted without density.
 
 Creating a formula automatically creates a separate finished-paint `Material` with its own sequential `PROD-XXX` code and inventory unit `gr`. Recipes are immutable snapshots; publishing a new version changes only the current flag and copies all ingredient lines into a new version. Existing preparation history stays linked to the original version. Users with `materials.view` can browse recipes; `materials.manage` is required to create versions or prepare batches.
