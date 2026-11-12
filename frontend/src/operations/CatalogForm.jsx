@@ -9,7 +9,7 @@ export default function CatalogForm({ kind, record = null, materialMeta = null, 
   const [density, setDensity] = useState(record?.density_g_per_ml == null ? '' : String(Number(record.density_g_per_ml)))
   const volumeBased = materialUnit === 'ml' || materialUnit === 'L'
   const densityValue = Number(density)
-  const densityPreviewValid = useDensity && /^\\d{1,4}(?:\\.\\d{1,6})?$/.test(density)
+  const densityPreviewValid = useDensity && /^\d{1,4}(?:\.\d{1,6})?$/.test(density)
     && Number.isFinite(densityValue) && densityValue > 0
   async function submit(event) {
     event.preventDefault()
