@@ -15,6 +15,9 @@ class MaterialCatalogService
         if ($material->minimum_stock !== null && $material->maximum_stock !== null && bccomp($material->maximum_stock, $material->minimum_stock, 6) < 0) {
             throw ValidationException::withMessages(['maximum_stock' => 'El máximo debe ser mayor o igual al mínimo.']);
         }
+        if ($material->density_g_per_ml !== null && ! in_array($material->unit, ['L', 'ml'], true)) {
+            throw ValidationException::withMessages(['density_g_per_ml' => 'La densidad opcional se configura para materiales cuya unidad de inventario es L o ml.']);
+        }
         if (MaterialUnit::normalize($material->unit) === null) {
             throw ValidationException::withMessages(['unit' => 'Selecciona una unidad del catálogo de inventario.']);
         }
@@ -48,9 +51,14 @@ class MaterialCatalogService
                 throw ValidationException::withMessages(['product' => 'Las pinturas terminadas se administran desde Formulación de Pintura.']);
             }
             $previousUnit = $current->unit;
+            $previousDensity = $current->density_g_per_ml;
             $current->fill($data);
             if ($current->unit !== $previousUnit && ($current->inventoryMovements()->exists() || $current->materialConsumptions()->exists())) {
                 throw ValidationException::withMessages(['unit' => 'La unidad canónica no puede cambiar cuando el material tiene historial.']);
+            }
+            if ($previousDensity !== $current->density_g_per_ml
+                && DB::table('paint_preparation_components')->where('material_id', $current->id)->exists()) {
+                throw ValidationException::withMessages(['density_g_per_ml' => 'La densidad no puede cambiar después de utilizar este material en una preparación. Se conserva la trazabilidad del lote.']);
             }
             $this->validateParameters($current);
             $current->save();
