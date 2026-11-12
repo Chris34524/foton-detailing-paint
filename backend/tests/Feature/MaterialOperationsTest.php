@@ -29,6 +29,34 @@ class MaterialOperationsTest extends OperationsTestCase
         $this->deleteJson('/api/materials/'.$id)->assertMethodNotAllowed();
     }
 
+    public function test_density_is_optional_for_volume_materials_and_never_required_for_ordinary_inventory(): void
+    {
+        $this->administrator();
+        $withoutDensity = $this->postJson('/api/materials', ['name' => 'Insumo volumen', 'unit' => 'ml'])
+            ->assertCreated()->assertJsonPath('data.density_g_per_ml', null)->json('data.id');
+        $this->patchJson('/api/materials/'.$withoutDensity, ['density_g_per_ml' => '1.250'])
+            ->assertOk()->assertJsonPath('data.density_g_per_ml', '1.250000');
+        $this->getJson('/api/materials/'.$withoutDensity)
+            ->assertOk()->assertJsonPath('data.density_g_per_ml', '1.250000');
+        $this->patchJson('/api/materials/'.$withoutDensity, ['density_g_per_ml' => null])
+            ->assertOk()->assertJsonPath('data.density_g_per_ml', null);
+        $this->postJson('/api/materials', ['name' => 'Insumo por kg', 'unit' => 'Kg'])
+            ->assertCreated()->assertJsonPath('data.density_g_per_ml', null);
+        $this->postJson('/api/materials', ['name' => 'Insumo por litro', 'unit' => 'L', 'density_g_per_ml' => '0.950'])
+            ->assertCreated()->assertJsonPath('data.density_g_per_ml', '0.950000');
+    }
+
+    public function test_density_rejects_invalid_values_and_non_volumetric_materials(): void
+    {
+        $this->administrator();
+        foreach (['0', '-1', '1.1234567', 'NaN', '1e2', '10000', 1.25] as $invalid) {
+            $this->postJson('/api/materials', ['name' => 'Insumo inválido', 'unit' => 'ml', 'density_g_per_ml' => $invalid])
+                ->assertUnprocessable()->assertJsonValidationErrors('density_g_per_ml');
+        }
+        $this->postJson('/api/materials', ['name' => 'Insumo masa', 'unit' => 'gr', 'density_g_per_ml' => '1.25'])
+            ->assertUnprocessable()->assertJsonValidationErrors('density_g_per_ml');
+    }
+
     public function test_consumption_has_server_actor_vin_process_and_stable_material_snapshot(): void
     {
         $actor = $this->administrator();
