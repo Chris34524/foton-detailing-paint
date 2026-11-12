@@ -97,6 +97,37 @@ describe('process catalog and sequence', () => {
     await clicker.click(screen.getByRole('button', { name: 'Guardar registro' }))
     await waitFor(() => expect(operationsService.saveCatalog).toHaveBeenCalledWith('processes', undefined, expect.objectContaining({ code: 'detail', name: 'Detallado', is_active: true })))
   })
+  it('offers optional ml-to-grams conversion only for volume materials', async () => {
+    const clicker = userEvent.setup()
+    renderApp('/materials')
+    await clicker.click(await screen.findByRole('button', { name: 'Nuevo material base' }))
+    const editor = screen.getByRole('form', { name: 'Crear registro' })
+    await clicker.type(within(editor).getByLabelText('Nombre'), 'Base de pintura líquida')
+    await clicker.selectOptions(within(editor).getByLabelText('Unidad de medida'), 'Kg')
+    expect(within(editor).queryByRole('checkbox', { name: /Habilitar conversión opcional/ })).not.toBeInTheDocument()
+
+    await clicker.selectOptions(within(editor).getByLabelText('Unidad de medida'), 'ml')
+    const toggle = within(editor).getByRole('checkbox', { name: /Habilitar conversión opcional/ })
+    expect(toggle).not.toBeChecked()
+    expect(within(editor).queryByLabelText('Densidad del material (g/ml)')).not.toBeInTheDocument()
+    await clicker.click(toggle)
+    await clicker.type(within(editor).getByLabelText('Densidad del material (g/ml)'), '1.25')
+    expect(within(editor).getByText(/100 ml = 125 g/)).toBeInTheDocument()
+    await clicker.click(within(editor).getByRole('button', { name: 'Guardar registro' }))
+    await waitFor(() => expect(operationsService.saveCatalog).toHaveBeenCalledWith('materials', undefined,
+      expect.objectContaining({ unit: 'ml', density_g_per_ml: '1.25' })))
+  })
+  it('allows liquid material registration without supplying density', async () => {
+    const clicker = userEvent.setup()
+    renderApp('/materials')
+    await clicker.click(await screen.findByRole('button', { name: 'Nuevo material base' }))
+    const editor = screen.getByRole('form', { name: 'Crear registro' })
+    await clicker.type(within(editor).getByLabelText('Nombre'), 'Solvente sin densidad')
+    await clicker.selectOptions(within(editor).getByLabelText('Unidad de medida'), 'L')
+    await clicker.click(within(editor).getByRole('button', { name: 'Guardar registro' }))
+    await waitFor(() => expect(operationsService.saveCatalog).toHaveBeenCalledWith('materials', undefined,
+      expect.objectContaining({ unit: 'L', density_g_per_ml: null })))
+  })
   it('edits and deactivates a catalog record', async () => {
     const clicker = userEvent.setup()
     renderApp('/materials')
