@@ -36,6 +36,7 @@ class PaintFormulaResource extends JsonResource
                 'name' => $component->material_name_snapshot,
                 'grams' => $component->grams,
                 'unit' => $component->material->unit,
+                'density_g_per_ml' => $component->material->density_g_per_ml,
                 'is_active' => $component->material->is_active,
                 'stock_actual' => $component->material->inventoryBalance?->quantity ?? '0.000000',
             ])->values()->all(),
