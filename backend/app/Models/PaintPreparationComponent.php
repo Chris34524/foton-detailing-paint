@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['paint_preparation_id', 'material_id', 'inventory_movement_id', 'grams'])]
+#[Fillable(['paint_preparation_id', 'material_id', 'inventory_movement_id', 'grams', 'density_g_per_ml_snapshot'])]
 class PaintPreparationComponent extends Model
 {
     protected function casts(): array
