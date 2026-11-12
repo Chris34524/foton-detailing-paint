@@ -11,7 +11,7 @@ class PaintPreparationComponent extends Model
 {
     protected function casts(): array
     {
-        return ['grams' => 'decimal:2'];
+        return ['grams' => 'decimal:2', 'density_g_per_ml_snapshot' => 'decimal:6'];
     }
 
     public function material(): BelongsTo
