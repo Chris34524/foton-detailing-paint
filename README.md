@@ -207,6 +207,14 @@ New Work Orders snapshot the configured sequence into `WorkOrderProcessStep`, pr
 
 ### Paint formulation and batch preparation
 
+### Product unit costs (MXN)
+
+The Materials catalog now supports an **optional unit cost in MXN** (`unit_cost_mxn DECIMAL(18,6)`) for each product. The price is per **canonical inventory unit**: a `Kg` item is priced per kilogram, an `L` item per litre, and finished paint in `gr` per gram. Blank means **cost not recorded**; `0` means a recorded zero cost. Nonnegative exact decimal strings with up to six fractional digits are supported; floats, negatives and exponential notation are rejected.
+
+Authorized Materials managers can set or clear the cost while creating/editing a raw material. Generated finished-paint products cannot have their identity or recipe changed through the Materials endpoint, but an authorized manager may update **only `unit_cost_mxn`** through the dedicated **Editar costo** inventory action. The backend enforces the same restriction independently of frontend visibility.
+
+The Inventory table shows unit cost and **estimated current inventory value** in MXN, computed from current stock quantity times current unit cost, rounded to cents. This is a live reference valuation; it does **not** backfill historical prices, value historic movements, maintain purchase lots or automatically determine the manufacturing cost of a formula. Existing records receive `null`, not an invented cost. Run `docker compose exec backend php artisan migrate` after updating the branch to install the additive column.
+
 ### Optional material density (ml to grams)
 
 When registering or editing an ordinary raw material with inventory unit `ml` or `L`, **Habilitar conversión opcional de ml a g por densidad** can be enabled. This saves a positive `density_g_per_ml` with up to six decimals (e.g., `1.250000` g/ml); leave the option disabled to keep the field null. No historical inventory entries are converted or rewritten, and existing materials remain valid without density.
