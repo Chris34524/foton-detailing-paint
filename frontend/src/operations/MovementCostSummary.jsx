@@ -2,9 +2,8 @@ import { formatMxn } from './formatMxn'
 
 export default function MovementCostSummary({ summary, dateFrom, dateTo }) {
   if (!summary) return null
-  const period = dateFrom || dateTo
-    ? 'Periodo: ' + (dateFrom || 'Inicio') + ' al ' + (dateTo || 'hoy')
-    : 'Periodo: todos los movimientos'
+  const period = dateFrom && dateTo ? 'Del ' + dateFrom + ' al ' + dateTo
+    : dateFrom ? 'Desde ' + dateFrom : dateTo ? 'Hasta ' + dateTo : 'Todos los periodos'
 
   return <section className="movement-cost-summary" aria-label="Resumen de costos del periodo">
     <div className="movement-cost-heading">
