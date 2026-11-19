@@ -207,6 +207,14 @@ New Work Orders snapshot the configured sequence into `WorkOrderProcessStep`, pr
 
 ### Paint formulation and batch preparation
 
+### Historical movement costs and date-range valuation
+
+Each inventory movement confirmed after the cost-snapshot migration stores a nullable `unit_cost_mxn_snapshot` and `total_cost_mxn`. The server takes the product's **current cost per canonical inventory unit** inside the locked movement transaction and multiplies it by the movement's exact `quantity_equivalent`, retaining six monetary decimals. The client cannot override either monetary field. Confirmed movement snapshots are immutable and idempotent retries preserve the original values even if the product price has since changed.
+
+`GET /api/inventory-movements` and material-specific movement history return the two cost fields on each row and `cost_summary` for the entire filtered result **before pagination**. Existing `date_from` and `date_to` filters also apply to the cost summary, along with movement type, destination, search and material. The summary separately reports incoming (opening, entries, positive adjustments), outgoing (exits and negative adjustments), total recorded movement costs, number of movements with prices and number with **unknown prices**.
+
+Historical movements created before the migration deliberately retain `null` cost snapshots: the system does not reprice historical movements using current product prices. Products without a configured unit cost similarly yield null-cost movements; a recorded `0` is treated as a known zero. The period report is **movement value**, not purchases, operating expenses, profit or a formal cost-of-goods-sold calculation. Mixing raw paint consumption and finished-paint production values can double-count economic value if interpreted as cash expenditure. Run `docker compose exec backend php artisan migrate` after updating the branch.
+
 ### Product unit costs (MXN)
 
 The Materials catalog now supports an **optional unit cost in MXN** (`unit_cost_mxn DECIMAL(18,6)`) for each product. The price is per **canonical inventory unit**: a `Kg` item is priced per kilogram, an `L` item per litre, and finished paint in `gr` per gram. Blank means **cost not recorded**; `0` means a recorded zero cost. Nonnegative exact decimal strings with up to six fractional digits are supported; floats, negatives and exponential notation are rejected.
