@@ -49,6 +49,46 @@ describe('inventory screens', () => {
     expect(screen.getByRole('navigation', { name: 'Navegación de materiales' })).toBeInTheDocument()
     expect(screen.queryByText('Desglose de existencias')).not.toBeInTheDocument()
   })
+  it('shows monetary columns and saves optional cost for a raw material', async () => {
+    operationsService.catalog.mockResolvedValue(collection([{
+      ...inventoryMaterial, unit_cost_mxn: '125.500000', stock_value_mxn: '627.50',
+    }]))
+    const clicker = userEvent.setup()
+    renderApp('/materials')
+    const table = await screen.findByRole('table')
+    expect(within(table).getByRole('columnheader', { name: 'Costo unitario (MXN)' })).toBeInTheDocument()
+    expect(within(table).getByText('$125.50 MXN')).toBeInTheDocument()
+    expect(within(table).getByText('$627.50 MXN')).toBeInTheDocument()
+
+    await clicker.click(screen.getByRole('button', { name: 'Editar ' + inventoryMaterial.name }))
+    const editor = screen.getByRole('form', { name: 'Editar registro' })
+    const costInput = within(editor).getByLabelText('Costo unitario (MXN por L)')
+    expect(costInput).toHaveValue('125.500000')
+    await clicker.clear(costInput)
+    await clicker.type(costInput, '130.125')
+    await clicker.click(within(editor).getByRole('button', { name: 'Guardar registro' }))
+    await waitFor(() => expect(operationsService.saveCatalog).toHaveBeenCalledWith('materials', inventoryMaterial.id,
+      expect.objectContaining({ unit_cost_mxn: '130.125' })))
+  })
+
+  it('allows cost-only editing for finished paint without opening the recipe editor', async () => {
+    operationsService.catalog.mockResolvedValue(collection([{
+      ...inventoryMaterial, kind: 'finished_paint', unit: 'gr', unit_cost_mxn: null, stock_value_mxn: null,
+    }]))
+    const clicker = userEvent.setup()
+    renderApp('/materials')
+    expect(await screen.findByText(inventoryMaterial.name)).toBeInTheDocument()
+    expect(screen.getByText('—')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Editar ' + inventoryMaterial.name })).not.toBeInTheDocument()
+
+    await clicker.click(screen.getByRole('button', { name: 'Editar costo de ' + inventoryMaterial.name }))
+    const editor = screen.getByRole('form', { name: 'Editar costo de ' + inventoryMaterial.name })
+    await clicker.type(within(editor).getByLabelText('Costo unitario (MXN por gr)'), '0.350000')
+    await clicker.click(within(editor).getByRole('button', { name: 'Guardar costo' }))
+    await waitFor(() => expect(operationsService.saveCatalog).toHaveBeenCalledWith('materials', inventoryMaterial.id,
+      { unit_cost_mxn: '0.350000' }))
+  })
+
   it('filters inventory status on the server', async () => {
     const clicker = userEvent.setup()
     renderApp('/materials')
