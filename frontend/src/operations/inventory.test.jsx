@@ -49,6 +49,42 @@ describe('inventory screens', () => {
     expect(screen.getByRole('navigation', { name: 'Navegación de materiales' })).toBeInTheDocument()
     expect(screen.queryByText('Desglose de existencias')).not.toBeInTheDocument()
   })
+  it('hides catalog filters while creating or editing inventory and restores them on cancel', async () => {
+    const clicker = userEvent.setup()
+    renderApp('/materials')
+    await screen.findByLabelText('Buscar en catálogo')
+    expect(screen.getByLabelText('Estado de inventario')).toBeInTheDocument()
+    await clicker.click(screen.getByRole('button', { name: 'Nuevo material base' }))
+    expect(screen.getByRole('form', { name: 'Crear registro' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Buscar en catálogo')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Actividad')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Estado de inventario')).not.toBeInTheDocument()
+    await clicker.click(within(screen.getByRole('form', { name: 'Crear registro' })).getByRole('button', { name: 'Cancelar' }))
+    expect(screen.getByLabelText('Buscar en catálogo')).toBeInTheDocument()
+
+    await clicker.click(screen.getByRole('button', { name: 'Editar ' + inventoryMaterial.name }))
+    expect(screen.getByRole('form', { name: 'Editar registro' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Buscar en catálogo')).not.toBeInTheDocument()
+    await clicker.click(within(screen.getByRole('form', { name: 'Editar registro' })).getByRole('button', { name: 'Cancelar' }))
+    expect(screen.getByLabelText('Buscar en catálogo')).toBeInTheDocument()
+  })
+  it('displays per-product and all-page inventory cost, flagging unpriced stock', async () => {
+    operationsService.catalog.mockResolvedValue({
+      ...collection([{ ...inventoryMaterial, unit_cost_mxn: '125.500000', stock_value_mxn: '627.50' }]),
+      inventory_valuation: {
+        material_count: 24, priced_material_count: 21, unpriced_with_stock_count: 2,
+        total_cost_mxn: '14890.75',
+      },
+    })
+    renderApp('/materials')
+    const table = await screen.findByRole('table')
+    expect(within(table).getByRole('columnheader', { name: 'Costo total en inventario (MXN)' })).toBeInTheDocument()
+    expect(within(table).getByText('$627.50 MXN')).toBeInTheDocument()
+    const total = screen.getByRole('region', { name: 'Costo total del inventario' })
+    expect(within(total).getByText('$14,890.75 MXN')).toBeInTheDocument()
+    expect(within(total).getByText('24 productos encontrados')).toBeInTheDocument()
+    expect(within(total).getByText(/2 producto\(s\) con existencias no tienen costo/)).toBeInTheDocument()
+  })
   it('shows monetary columns and saves optional cost for a raw material', async () => {
     operationsService.catalog.mockResolvedValue(collection([{
       ...inventoryMaterial, unit_cost_mxn: '125.500000', stock_value_mxn: '627.50',
@@ -82,6 +118,7 @@ describe('inventory screens', () => {
     expect(screen.queryByRole('button', { name: 'Editar ' + inventoryMaterial.name })).not.toBeInTheDocument()
 
     await clicker.click(screen.getByRole('button', { name: 'Editar costo de ' + inventoryMaterial.name }))
+    expect(screen.queryByLabelText('Buscar en catálogo')).not.toBeInTheDocument()
     const editor = screen.getByRole('form', { name: 'Editar costo de ' + inventoryMaterial.name })
     await clicker.type(within(editor).getByLabelText('Costo unitario (MXN por gr)'), '0.350000')
     await clicker.click(within(editor).getByRole('button', { name: 'Guardar costo' }))
