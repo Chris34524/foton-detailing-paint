@@ -3,7 +3,7 @@ import { formatQuantity } from './formatQuantity'
 import { formatMxn } from './formatMxn'
 export default function InventoryTable({ data, canManage, canMove, onEdit, onCostEdit }) {
   return <div className="table-scroll inventory-table-scroll" tabIndex={0} role="region" aria-label="Inventario de materiales"><table className="inventory-table"><caption className="sr-only">Inventario de materiales</caption>
-    <thead><tr><th>Código</th><th>Componente</th><th>Unidad</th><th>Stock actual</th><th>Costo unitario (MXN)</th><th>Valor estimado (MXN)</th><th>Mínimo</th><th>Máximo</th><th>Estado</th><th>% de nivel</th><th>Ubicación</th><th>Proveedor</th><th>Acciones</th></tr></thead>
+    <thead><tr><th>Código</th><th>Componente</th><th>Unidad</th><th>Stock actual</th><th>Costo unitario (MXN)</th><th>Costo total en inventario (MXN)</th><th>Mínimo</th><th>Máximo</th><th>Estado</th><th>% de nivel</th><th>Ubicación</th><th>Proveedor</th><th>Acciones</th></tr></thead>
     <tbody>{data.map((material) => <tr key={material.id}>
       <td>{material.code}</td><td>{material.name}{material.kind === 'finished_paint' && <span className="material-kind">Pintura terminada</span>}{!material.is_active && <span className="inactive-badge">Inactivo</span>}</td><td>{material.unit}{material.density_g_per_ml != null && <small className="paint-density-label">{formatQuantity(material.density_g_per_ml)} g/ml</small>}</td>
       <td>{formatQuantity(material.stock_actual ?? '0.000000')}</td>
