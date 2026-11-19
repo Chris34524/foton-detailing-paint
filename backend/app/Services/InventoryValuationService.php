@@ -14,7 +14,7 @@ class InventoryValuationService
      */
     public function summarize(Builder $query): array
     {
-        $totals = (clone $query)->reorder()->select([])->selectRaw("
+        $totals = (clone $query)->reorder()->select([])->selectRaw('
             COUNT(*) AS material_count,
             COALESCE(SUM(CASE WHEN materials.unit_cost_mxn IS NOT NULL THEN 1 ELSE 0 END), 0) AS priced_material_count,
             COALESCE(SUM(CASE WHEN materials.unit_cost_mxn IS NULL
@@ -22,7 +22,7 @@ class InventoryValuationService
             COALESCE(SUM(CASE WHEN materials.unit_cost_mxn IS NOT NULL
                 THEN ROUND(COALESCE(inventory_balances.quantity, 0) * materials.unit_cost_mxn, 2)
                 ELSE 0 END), 0) AS total_cost_mxn
-        ")->first();
+        ')->first();
 
         return [
             'material_count' => (int) $totals->material_count,
