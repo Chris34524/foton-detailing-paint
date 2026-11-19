@@ -12,6 +12,7 @@ import { operationsPermissions as permissions } from '../operations/permissions'
 import { LoadState } from '../operations/Feedback'
 import CatalogForm from '../operations/CatalogForm'
 import MaterialCostEditor from '../operations/MaterialCostEditor'
+import InventoryValuationSummary from '../operations/InventoryValuationSummary'
 import SequencePanel from '../operations/SequencePanel'
 import ChecklistItems from '../operations/ChecklistItems'
 const configs = {
@@ -63,6 +64,7 @@ export default function OperationsCatalogPage({ kind }) {
       onSaved={() => { setCostEditor(null); setNotice('Costo actualizado correctamente.'); resource.retry() }} />}
     {notice && <p className="success-message" role="status">{notice}</p>}
     <LoadState resource={resource}>{resource.data && <>
+      {kind === 'materials' && !hideInventorySearch && <InventoryValuationSummary summary={resource.data.inventory_valuation} />}
       {resource.data.data.length === 0 ? <p className="empty-state">No hay registros configurados con estos criterios.</p>
         : kind === 'materials' ? <InventoryTable data={resource.data.data} canManage={can(config.manage)} canMove={can(permissions.materialsManage) || can(permissions.materialsConsume)} onEdit={(record) => { setNotice(''); setCostEditor(null); setEditor({ record }) }} onCostEdit={(record) => { setNotice(''); setEditor(null); setCostEditor(record) }} />
         : <div className="table-scroll" tabIndex={0} role="region" aria-label="Tabla de registros"><table><caption className="sr-only">{config.title}</caption><thead><tr>
