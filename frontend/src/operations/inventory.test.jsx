@@ -128,6 +128,46 @@ describe('inventory screens', () => {
     expect(within(table).getByRole('link', { name: movement.folio })).toHaveAttribute('href', '/materials/movements/10')
     for (const text of ['750', 'ml', '0.75 L', 'Admin de prueba', 'Pintura 1']) expect(within(table).getByText(text)).toBeInTheDocument()
   })
+  it('shows frozen movement prices and period totals from all matching pages', async () => {
+    const clicker = userEvent.setup()
+    const summary = {
+      movement_count: 8, with_cost_count: 6, without_cost_count: 2,
+      inbound_total_mxn: '250.000000', outbound_total_mxn: '105.500000', recorded_total_mxn: '355.500000',
+    }
+    inventoryService.movements.mockResolvedValue({
+      ...collection([{ ...movement, unit_cost_mxn_snapshot: '125.500000', total_cost_mxn: '94.125000' }]),
+      cost_summary: summary,
+    })
+    renderApp('/materials/movements')
+    const table = await screen.findByRole('table')
+    expect(within(table).getByRole('columnheader', { name: 'Costo unitario' })).toBeInTheDocument()
+    expect(within(table).getByRole('columnheader', { name: 'Costo total' })).toBeInTheDocument()
+    expect(within(table).getByText('$125.50 MXN / L')).toBeInTheDocument()
+    expect(within(table).getByText('$94.125 MXN')).toBeInTheDocument()
+
+    const costs = screen.getByRole('region', { name: 'Resumen de costos del periodo' })
+    expect(within(costs).getByText('$250.00 MXN')).toBeInTheDocument()
+    expect(within(costs).getByText('$105.50 MXN')).toBeInTheDocument()
+    expect(within(costs).getByText('$355.50 MXN')).toBeInTheDocument()
+    expect(within(costs).getByText(/2 sin costo registrado/)).toBeInTheDocument()
+    expect(within(costs).getByText(/no solo esta página/)).toBeInTheDocument()
+    await clicker.type(screen.getByLabelText('Desde'), '2026-11-01')
+    await clicker.type(screen.getByLabelText('Hasta'), '2026-11-15')
+    await clicker.click(screen.getByRole('button', { name: 'Aplicar filtros' }))
+    await waitFor(() => expect(inventoryService.movements).toHaveBeenLastCalledWith(expect.objectContaining({
+      date_from: '2026-11-01', date_to: '2026-11-15',
+    }), expect.anything()))
+  })
+
+  it('preserves unknown historical movement prices in details', async () => {
+    inventoryService.movement.mockResolvedValue({ ...movement, unit_cost_mxn_snapshot: null, total_cost_mxn: null })
+    renderApp('/materials/movements/10')
+    const receipt = await screen.findByRole('region', { name: 'Movimiento confirmado' })
+    expect(within(receipt).getByText('Costo unitario al confirmar')).toBeInTheDocument()
+    expect(within(receipt).getByText('Costo total del movimiento')).toBeInTheDocument()
+    expect(within(receipt).getAllByText('—')).toHaveLength(2)
+  })
+
   it('filters movements by date, type and destination with server pagination', async () => {
     inventoryService.movements.mockResolvedValue(collection([movement], { current_page: 1, last_page: 2, total: 25 }))
     const clicker = userEvent.setup()
