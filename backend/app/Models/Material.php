@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['code', 'name', 'description', 'unit', 'minimum_stock', 'maximum_stock', 'location', 'supplier', 'notes', 'warehouse_reference', 'is_active', 'density_g_per_ml'])]
+#[Fillable(['code', 'name', 'description', 'unit', 'minimum_stock', 'maximum_stock', 'location', 'supplier', 'notes', 'warehouse_reference', 'is_active', 'density_g_per_ml', 'unit_cost_mxn'])]
 class Material extends Model
 {
     /** @use HasFactory<MaterialFactory> */
@@ -27,7 +27,7 @@ class Material extends Model
 
     protected function casts(): array
     {
-        return ['is_active' => 'boolean', 'minimum_stock' => 'decimal:6', 'maximum_stock' => 'decimal:6', 'density_g_per_ml' => 'decimal:6'];
+        return ['is_active' => 'boolean', 'minimum_stock' => 'decimal:6', 'maximum_stock' => 'decimal:6', 'density_g_per_ml' => 'decimal:6', 'unit_cost_mxn' => 'decimal:6'];
     }
 
     protected function unit(): Attribute
