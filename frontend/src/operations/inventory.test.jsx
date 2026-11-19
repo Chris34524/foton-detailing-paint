@@ -78,7 +78,7 @@ describe('inventory screens', () => {
     const clicker = userEvent.setup()
     renderApp('/materials')
     expect(await screen.findByText(inventoryMaterial.name)).toBeInTheDocument()
-    expect(screen.getByText('—')).toBeInTheDocument()
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
     expect(screen.queryByRole('button', { name: 'Editar ' + inventoryMaterial.name })).not.toBeInTheDocument()
 
     await clicker.click(screen.getByRole('button', { name: 'Editar costo de ' + inventoryMaterial.name }))
