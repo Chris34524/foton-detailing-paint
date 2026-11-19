@@ -21,7 +21,7 @@ class InventoryMovement extends Model
 
     protected function casts(): array
     {
-        return ['movement_type' => InventoryMovementType::class, 'quantity_original' => 'decimal:6', 'quantity_equivalent' => 'decimal:6', 'signed_quantity' => 'decimal:6', 'stock_before' => 'decimal:6', 'stock_after' => 'decimal:6', 'occurred_at' => 'datetime'];
+        return ['movement_type' => InventoryMovementType::class, 'quantity_original' => 'decimal:6', 'quantity_equivalent' => 'decimal:6', 'signed_quantity' => 'decimal:6', 'stock_before' => 'decimal:6', 'stock_after' => 'decimal:6', 'unit_cost_mxn_snapshot' => 'decimal:6', 'total_cost_mxn' => 'decimal:6', 'occurred_at' => 'datetime'];
     }
 
     protected static function booted(): void
