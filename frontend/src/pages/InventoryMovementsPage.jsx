@@ -7,6 +7,8 @@ import Pagination from '../diagnosis/Pagination'
 import { formatUnitDate } from '../units/unitErrors'
 import inventoryService from '../operations/inventoryService'
 import { formatQuantity } from '../operations/formatQuantity'
+import { formatMxn } from '../operations/formatMxn'
+import MovementCostSummary from '../operations/MovementCostSummary'
 import InventoryNavigation from '../operations/InventoryNavigation'
 import useInventoryRefresh from '../operations/useInventoryRefresh'
 import { LoadState } from '../operations/Feedback'
@@ -44,12 +46,17 @@ export default function InventoryMovementsPage() {
     {canAny([permissions.materialsManage, permissions.materialsConsume]) && <Link className="button-link" to={'/materials/movements/new' + (materialId ? '?material_id=' + materialId : '')}>Registrar movimiento</Link>}</div>
     <InventoryNavigation /><LoadState resource={resource}>{resource.data && <>
       <Filters key={query} params={params} meta={resource.data.meta} onSearch={setParams} onClear={() => setParams({})} />
+      <MovementCostSummary summary={resource.data.collection.cost_summary}
+        dateFrom={params.get('date_from')} dateTo={params.get('date_to')} />
       {resource.data.collection.data.length === 0 ? <p className="empty-state">No hay movimientos para mostrar.</p> : <div className="table-scroll movement-table-scroll" tabIndex={0} role="region" aria-label="Tabla de movimientos"><table className="movement-table">
-        <caption className="sr-only">Historial de movimientos</caption><thead><tr><th>Fecha</th><th>Folio</th><th>Código</th><th>Componente</th><th>Tipo</th><th>Cantidad</th><th>Unidad movimiento</th><th>Cantidad equivalente</th><th>Responsable</th><th>Área / destino</th><th>Observaciones</th></tr></thead>
+        <caption className="sr-only">Historial de movimientos</caption><thead><tr><th>Fecha</th><th>Folio</th><th>Código</th><th>Componente</th><th>Tipo</th><th>Cantidad</th><th>Unidad movimiento</th><th>Cantidad equivalente</th><th>Costo unitario</th><th>Costo total</th><th>Responsable</th><th>Área / destino</th><th>Observaciones</th></tr></thead>
         <tbody>{resource.data.collection.data.map((movement) => <tr key={movement.id}>
           <td>{formatUnitDate(movement.occurred_at)}</td><td><Link to={'/materials/movements/' + movement.id}>{movement.folio}</Link></td>
           <td>{movement.material.code}</td><td>{movement.material.name}</td><td>{movement.movement_type_label}</td><td>{formatQuantity(movement.quantity_original)}</td><td>{movement.unit_original}</td>
-          <td>{formatQuantity(movement.quantity_equivalent)} {movement.material.unit}</td><td>{movement.performed_by?.name || 'Usuario no disponible'}</td><td>{movement.area_destination || '—'}</td><td>{movement.notes || '—'}</td>
+          <td>{formatQuantity(movement.quantity_equivalent)} {movement.material.unit}</td>
+          <td>{formatMxn(movement.unit_cost_mxn_snapshot, { maximumFractionDigits: 6 })} {movement.unit_cost_mxn_snapshot !== null && movement.unit_cost_mxn_snapshot !== undefined ? '/ ' + movement.material.unit : ''}</td>
+          <td>{formatMxn(movement.total_cost_mxn, { maximumFractionDigits: 6 })}</td>
+          <td>{movement.performed_by?.name || 'Usuario no disponible'}</td><td>{movement.area_destination || '—'}</td><td>{movement.notes || '—'}</td>
         </tr>)}</tbody></table></div>}
       <Pagination meta={resource.data.collection.meta} label="Paginación de movimientos" onPage={(page) => { const next = new URLSearchParams(params); next.set('page', String(page)); setParams(next) }} />
     </>}</LoadState>
