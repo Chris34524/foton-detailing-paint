@@ -53,7 +53,7 @@ describe('inventory screens', () => {
     const clicker = userEvent.setup()
     renderApp('/materials')
     await screen.findByLabelText('Buscar en catálogo')
-    expect(screen.getByLabelText('Estado de inventario')).toBeInTheDocument()
+    expect(await screen.findByLabelText('Estado de inventario')).toBeInTheDocument()
     await clicker.click(screen.getByRole('button', { name: 'Nuevo material base' }))
     expect(screen.getByRole('form', { name: 'Crear registro' })).toBeInTheDocument()
     expect(screen.queryByLabelText('Buscar en catálogo')).not.toBeInTheDocument()
