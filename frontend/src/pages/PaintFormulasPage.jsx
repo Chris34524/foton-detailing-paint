@@ -4,6 +4,7 @@ import useAuth from '../auth/useAuth'
 import operationsService from '../operations/operationsService'
 import paintService from '../operations/paintService'
 import { formatQuantity } from '../operations/formatQuantity'
+import { formatMxn } from '../operations/formatMxn'
 import { operationsPermissions } from '../operations/permissions'
 import InventoryNavigation from '../operations/InventoryNavigation'
 
@@ -275,6 +276,7 @@ export default function PaintFormulasPage() {
             <strong>{selected.color_name} · {selected.vehicle_model}</strong>
             <span>{selected.product.code} · Color {selected.color_code} · Versión {selected.version}</span>
             <span>Producto terminado disponible: {formatQuantity(selected.product.stock_actual)} g</span>
+            <span>Costo unitario de referencia: {formatMxn(selected.product.unit_cost_mxn, { maximumFractionDigits: 6 })} por g · Configurable desde Inventario</span>
           </div>
           {versions.length > 1 && <div className="paint-version-history"><span>Versiones de la fórmula:</span>
             {versions.map((version) => <button type="button" key={version.id} disabled={version.id === selected.id}
