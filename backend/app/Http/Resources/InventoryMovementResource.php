@@ -14,6 +14,7 @@ class InventoryMovementResource extends JsonResource
             'movement_type' => $this->movement_type->value, 'movement_type_label' => $this->movement_type->label(),
             'quantity_original' => $this->quantity_original, 'unit_original' => $this->unit_original, 'quantity_equivalent' => $this->quantity_equivalent,
             'signed_quantity' => $this->signed_quantity, 'stock_before' => $this->stock_before, 'stock_after' => $this->stock_after,
+            'unit_cost_mxn_snapshot' => $this->unit_cost_mxn_snapshot, 'total_cost_mxn' => $this->total_cost_mxn,
             'area_destination' => $this->area_destination, 'notes' => $this->notes, 'occurred_at' => $this->occurred_at->toISOString(),
             'performed_by' => $this->performedBy === null ? null : new OperatorResource($this->performedBy),
             'source_kind' => $this->source_kind,
