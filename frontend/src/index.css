@@ -469,3 +469,13 @@ td button { min-height: 34px; font-size: .76rem; padding: .4rem .65rem; }
 .movement-cost-grid dd { margin: 0; font-size: clamp(.98rem, 1.7vw, 1.3rem); font-weight: 750; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .movement-cost-note { margin: .8rem 0 0; color: var(--muted); font-size: .8rem; }
 @media (max-width: 760px) { .movement-cost-grid { grid-template-columns: 1fr; } }
+
+/* Inventory total: current valuation of every filtered product, not only this page. */
+.inventory-valuation-summary { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 1rem 2rem; margin: 1rem 0 1.4rem; padding: .35rem 0 1rem; border-bottom: 1px solid var(--line); }
+.inventory-valuation-summary h2 { font-size: 1.15rem; margin: .2rem 0 .35rem; }
+.inventory-valuation-summary .muted { font-size: .83rem; max-width: 55ch; margin: 0; }
+.inventory-valuation-total { display: grid; gap: .2rem; text-align: right; font-variant-numeric: tabular-nums; }
+.inventory-valuation-total strong { font-size: clamp(1.25rem, 2.8vw, 1.8rem); line-height: 1.15; }
+.inventory-valuation-total span { color: var(--muted); font-size: .79rem; }
+.inventory-valuation-warning { width: 100%; margin: 0; color: var(--muted); font-size: .83rem; }
+@media (max-width: 640px) { .inventory-valuation-total { text-align: left; } }
