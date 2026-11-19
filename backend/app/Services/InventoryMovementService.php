@@ -133,6 +133,11 @@ class InventoryMovementService
                 $movement->material_code_snapshot = $material->code;
                 $movement->material_name_snapshot = $material->name;
                 $movement->unit_snapshot = $material->unit;
+                // Preserve the price applied when this movement was confirmed.
+                // The optional catalog cost is per canonical inventory unit.
+                $movement->unit_cost_mxn_snapshot = $material->unit_cost_mxn;
+                $movement->total_cost_mxn = $material->unit_cost_mxn === null
+                    ? null : bcadd(bcmul($equivalent, $material->unit_cost_mxn, 12), '0.0000005', 6);
                 $movement->area_destination = $data['area_destination'];
                 $movement->notes = $data['notes'];
                 $movement->performed_by = $actor->id;
