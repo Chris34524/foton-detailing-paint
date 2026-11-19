@@ -48,7 +48,14 @@ class MaterialCatalogService
         return DB::transaction(function () use ($material, $data): Material {
             $current = Material::query()->lockForUpdate()->findOrFail($material->id);
             if ($current->kind === 'finished_paint') {
-                throw ValidationException::withMessages(['product' => 'Las pinturas terminadas se administran desde Formulación de Pintura.']);
+                // Pinturas formuladas conservan identidad y unidad; solo su costo de referencia puede editarse.
+                if (array_keys($data) !== ['unit_cost_mxn']) {
+                    throw ValidationException::withMessages(['product' => 'En pinturas terminadas solo se permite actualizar el costo unitario desde Inventario.']);
+                }
+                $current->unit_cost_mxn = $data['unit_cost_mxn'];
+                $current->save();
+
+                return $current;
             }
             $previousUnit = $current->unit;
             $previousDensity = $current->density_g_per_ml;
