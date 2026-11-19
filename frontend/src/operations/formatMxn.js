@@ -5,6 +5,7 @@ export function formatMxn(value, { maximumFractionDigits = 2 } = {}) {
   if (!/^\d+(?:\.\d+)?$/.test(text)) return '—'
   const [whole, fractional = ''] = text.split('.')
   const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-  const decimals = fractional.slice(0, maximumFractionDigits).padEnd(Math.min(2, maximumFractionDigits), '0')
+  const trimmed = fractional.slice(0, maximumFractionDigits).replace(/0+$/, '')
+  const decimals = trimmed.padEnd(Math.min(2, maximumFractionDigits), '0')
   return '$' + grouped + (decimals ? '.' + decimals : '') + ' MXN'
 }
