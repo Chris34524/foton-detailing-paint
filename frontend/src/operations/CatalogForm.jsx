@@ -20,6 +20,7 @@ export default function CatalogForm({ kind, record = null, materialMeta = null, 
     if (kind === 'materials') {
       payload.unit = record?.has_inventory_history ? record.unit : fields.get('unit')
       payload.density_g_per_ml = volumeBased && useDensity ? fields.get('density_g_per_ml') : null
+      payload.unit_cost_mxn = fields.get('unit_cost_mxn') || null
       payload.warehouse_reference = fields.get('warehouse_reference').trim() || null
       for (const field of ['minimum_stock', 'maximum_stock', 'location', 'supplier', 'notes']) payload[field] = fields.get(field).trim() || null
     }
@@ -64,6 +65,16 @@ export default function CatalogForm({ kind, record = null, materialMeta = null, 
           </div>
         </div>}
       </div>}</fieldset>
+      <fieldset disabled={busy}><legend>Costo del producto</legend>
+        <div className="form-grid"><div className="form-field">
+          <label htmlFor="material-unit-cost">Costo unitario (MXN por {materialUnit || 'unidad'})</label>
+          <input id="material-unit-cost" name="unit_cost_mxn" type="text" inputMode="decimal"
+            maxLength={19} pattern="[0-9]{1,12}([.][0-9]{1,6})?"
+            placeholder="Ej. 125.50" defaultValue={record?.unit_cost_mxn ?? ''} />
+          <p className="field-hint">Opcional. Introduce el costo por cada {materialUnit || 'unidad'} de inventario; admite hasta seis decimales.
+            El campo vacío indica que aún no se ha registrado un costo. No es un precio de venta.</p>
+        </div></div>
+      </fieldset>
       <fieldset disabled={busy}><legend>Ubicación y abastecimiento</legend><div className="form-grid">
         <div className="form-field"><label htmlFor="material-location">Ubicación física</label><input id="material-location" name="location" maxLength={160} defaultValue={record?.location || ''} placeholder="Ej. Laboratorio de Pintura" /></div>
         <div className="form-field"><label htmlFor="material-supplier">Proveedor</label><input id="material-supplier" name="supplier" maxLength={160} defaultValue={record?.supplier || ''} /></div>
