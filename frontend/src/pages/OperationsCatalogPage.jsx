@@ -11,6 +11,7 @@ import useInventoryRefresh from '../operations/useInventoryRefresh'
 import { operationsPermissions as permissions } from '../operations/permissions'
 import { LoadState } from '../operations/Feedback'
 import CatalogForm from '../operations/CatalogForm'
+import MaterialCostEditor from '../operations/MaterialCostEditor'
 import SequencePanel from '../operations/SequencePanel'
 import ChecklistItems from '../operations/ChecklistItems'
 const configs = {
@@ -24,6 +25,7 @@ export default function OperationsCatalogPage({ kind }) {
   const [params, setParams] = useSearchParams()
   const query = params.toString()
   const [editor, setEditor] = useState(null)
+  const [costEditor, setCostEditor] = useState(null)
   const [notice, setNotice] = useState('')
   const [itemsFor, setItemsFor] = useState(null)
   const loader = useCallback((signal) => operationsService.catalog(kind, Object.fromEntries(new URLSearchParams(query)), { signal }), [kind, query])
@@ -41,7 +43,7 @@ export default function OperationsCatalogPage({ kind }) {
   function page(value) { const next = new URLSearchParams(params); next.set('page', value); setParams(next) }
   return <section className="workspace-card">
     <div className="section-heading"><div><p className="eyebrow">{kind === "materials" ? "CONTROL DE INVENTARIO" : "CONFIGURACIÓN"}</p><h1>{config.title}</h1><p className="muted page-description">{config.description}</p></div>
-      {can(config.manage) && <button className="primary-button" onClick={() => { setNotice(''); setEditor({ record: null }) }}>{kind === 'materials' ? 'Nuevo material base' : 'Nuevo registro'}</button>}</div>
+      {can(config.manage) && <button className="primary-button" onClick={() => { setNotice(''); setCostEditor(null); setEditor({ record: null }) }}>{kind === 'materials' ? 'Nuevo material base' : 'Nuevo registro'}</button>}</div>
     {kind === 'materials' && <><InventoryNavigation /><LoadState resource={metadata}>{null}</LoadState></>}
     {kind === 'checklists' && <p><Link to="/inspections">Volver a Inspección</Link></p>}
     <form key={query} className="diagnosis-search" onSubmit={search}>
@@ -55,10 +57,13 @@ export default function OperationsCatalogPage({ kind }) {
     </form>
     {editor && (kind !== 'materials' || metadata.data) && <CatalogForm materialMeta={metadata.data} key={kind + ':' + (editor.record?.id ?? 'new')} kind={kind} record={editor.record} onCancel={() => setEditor(null)}
       onSaved={() => { setEditor(null); setNotice('Registro guardado correctamente.'); resource.retry() }} />}
+    {kind === 'materials' && costEditor && <MaterialCostEditor key={costEditor.id}
+      material={costEditor} onCancel={() => setCostEditor(null)}
+      onSaved={() => { setCostEditor(null); setNotice('Costo actualizado correctamente.'); resource.retry() }} />}
     {notice && <p className="success-message" role="status">{notice}</p>}
     <LoadState resource={resource}>{resource.data && <>
       {resource.data.data.length === 0 ? <p className="empty-state">No hay registros configurados con estos criterios.</p>
-        : kind === 'materials' ? <InventoryTable data={resource.data.data} canManage={can(config.manage)} canMove={can(permissions.materialsManage) || can(permissions.materialsConsume)} onEdit={(record) => { setNotice(''); setEditor({ record }) }} />
+        : kind === 'materials' ? <InventoryTable data={resource.data.data} canManage={can(config.manage)} canMove={can(permissions.materialsManage) || can(permissions.materialsConsume)} onEdit={(record) => { setNotice(''); setCostEditor(null); setEditor({ record }) }} onCostEdit={(record) => { setNotice(''); setEditor(null); setCostEditor(record) }} />
         : <div className="table-scroll" tabIndex={0} role="region" aria-label="Tabla de registros"><table><caption className="sr-only">{config.title}</caption><thead><tr>
           {kind !== 'checklists' && <th>Código</th>}<th>Nombre</th>{kind === 'materials' && <th>Unidad</th>}<th>Actividad</th><th>Acciones</th>
         </tr></thead><tbody>{resource.data.data.map((record) => <tr key={record.id}>
