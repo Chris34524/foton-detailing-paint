@@ -16,6 +16,7 @@ use App\Http\Resources\MaterialResource;
 use App\Models\InventoryMovement;
 use App\Models\Material;
 use App\Services\InventoryMovementService;
+use App\Services\InventoryMovementCostSummaryService;
 use App\Services\InventoryStockService;
 use App\Services\MaterialQuantityConverter;
 use Illuminate\Http\JsonResponse;
@@ -69,7 +70,7 @@ class InventoryController extends Controller
             'can_confirm' => $material->is_active && $sufficient && $openingAllowed && $finishedAllowed && $request->user()->can('create', [InventoryMovement::class, $type])]);
     }
 
-    public function index(InventoryMovementIndexRequest $request, ?Material $material = null): AnonymousResourceCollection
+    public function index(InventoryMovementIndexRequest $request, InventoryMovementCostSummaryService $costSummary, ?Material $material = null): AnonymousResourceCollection
     {
         $filters = $request->validated();
         $query = InventoryMovement::query()->with($this->relations());
@@ -91,10 +92,12 @@ class InventoryController extends Controller
         if (isset($filters['date_to'])) {
             $query->where('occurred_at', '<=', $filters['date_to'].' 23:59:59');
         }
+        $summary = $costSummary->summarize($query);
         $direction = $filters['direction'] ?? 'desc';
         $query->orderBy($filters['sort'] ?? 'occurred_at', $direction)->orderBy('id', $direction);
 
-        return InventoryMovementResource::collection($query->paginate($filters['per_page'] ?? 20)->appends($filters));
+        return InventoryMovementResource::collection($query->paginate($filters['per_page'] ?? 20)->appends($filters))
+            ->additional(['cost_summary' => $summary]);
     }
 
     public function store(InventoryMovementRequest $request, InventoryMovementService $inventory): JsonResponse
