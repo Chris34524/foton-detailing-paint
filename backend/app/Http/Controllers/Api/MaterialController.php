@@ -10,6 +10,7 @@ use App\Http\Requests\Operations\OperationsIndexRequest;
 use App\Http\Resources\MaterialResource;
 use App\Models\Material;
 use App\Services\InventoryStockService;
+use App\Services\InventoryValuationService;
 use App\Services\MaterialCatalogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -18,7 +19,7 @@ use Illuminate\Support\Facades\Gate;
 
 class MaterialController extends Controller
 {
-    public function index(OperationsIndexRequest $request, InventoryStockService $stock): AnonymousResourceCollection
+    public function index(OperationsIndexRequest $request, InventoryStockService $stock, InventoryValuationService $valuation): AnonymousResourceCollection
     {
         $integration = $request->routeIs('warehouse.*');
         $integration ? Gate::authorize(Permission::MaterialsManage->value) : Gate::authorize('viewAny', Material::class);
@@ -38,9 +39,10 @@ class MaterialController extends Controller
         if (isset($filters['updated_since'])) {
             $query->where('materials.updated_at', '>=', Carbon::parse($filters['updated_since'])->utc());
         }
+        $inventoryValuation = $integration ? null : $valuation->summarize($query);
         $query->orderBy('materials.'.($filters['sort'] ?? 'code'), $filters['direction'] ?? 'asc')->orderBy('materials.id');
 
-        return MaterialResource::collection($query->paginate($filters['per_page'] ?? 20)->appends($filters))->additional($integration ? ['contract_version' => '1'] : []);
+        return MaterialResource::collection($query->paginate($filters['per_page'] ?? 20)->appends($filters))->additional($integration ? ['contract_version' => '1'] : ['inventory_valuation' => $inventoryValuation]);
     }
 
     public function store(CatalogRequest $request, MaterialCatalogService $catalog): JsonResponse
