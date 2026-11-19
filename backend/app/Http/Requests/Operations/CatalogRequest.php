@@ -8,6 +8,7 @@ use App\Models\Material;
 use App\Models\Process;
 use App\Rules\InventoryDecimal;
 use App\Rules\MaterialDensity;
+use App\Rules\MaterialUnitCost;
 use App\Rules\PlainText;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -44,6 +45,7 @@ class CatalogRequest extends OperationsRequest
         if ($class === Material::class) {
             $rules['unit'] = [$required, 'required', Rule::enum(MaterialUnit::class)];
             $rules['density_g_per_ml'] = ['sometimes', 'nullable', new MaterialDensity];
+            $rules['unit_cost_mxn'] = ['sometimes', 'nullable', new MaterialUnitCost];
             foreach (['minimum_stock', 'maximum_stock'] as $field) {
                 $rules[$field] = ['sometimes', 'nullable', new InventoryDecimal(false)];
             }
