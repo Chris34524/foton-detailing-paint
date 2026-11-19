@@ -28,6 +28,7 @@ export default function OperationsCatalogPage({ kind }) {
   const [costEditor, setCostEditor] = useState(null)
   const [notice, setNotice] = useState('')
   const [itemsFor, setItemsFor] = useState(null)
+  const hideInventorySearch = kind === 'materials' && (editor !== null || costEditor !== null)
   const loader = useCallback((signal) => operationsService.catalog(kind, Object.fromEntries(new URLSearchParams(query)), { signal }), [kind, query])
   const resource = useData('catalog:' + kind + ':' + query, loader)
   const metaLoader = useCallback((signal) => kind === 'materials' ? inventoryService.meta({ signal }) : Promise.resolve(null), [kind])
@@ -46,7 +47,7 @@ export default function OperationsCatalogPage({ kind }) {
       {can(config.manage) && <button className="primary-button" onClick={() => { setNotice(''); setCostEditor(null); setEditor({ record: null }) }}>{kind === 'materials' ? 'Nuevo material base' : 'Nuevo registro'}</button>}</div>
     {kind === 'materials' && <><InventoryNavigation /><LoadState resource={metadata}>{null}</LoadState></>}
     {kind === 'checklists' && <p><Link to="/inspections">Volver a Inspección</Link></p>}
-    <form key={query} className="diagnosis-search" onSubmit={search}>
+    {!hideInventorySearch && <form key={query} className="diagnosis-search" onSubmit={search}>
       <div><label htmlFor="catalog-search">Buscar en catálogo</label><input id="catalog-search" name="search" maxLength={255} defaultValue={params.get('search') || ''} /></div>
       <div><label htmlFor="catalog-active">Actividad</label><select id="catalog-active" name="active" defaultValue={params.get('active') || ''}><option value="">Todos</option><option value="1">Activos</option><option value="0">Inactivos</option></select></div>
       {kind === 'materials' && metadata.data && <div><label htmlFor="catalog-unit">Unidad de medida</label><select id="catalog-unit" name="unit" defaultValue={params.get('unit') || ''}><option value="">Todas</option>{metadata.data.units.map((unit) => <option key={unit.value} value={unit.value}>{unit.label}</option>)}</select></div>}
@@ -54,7 +55,7 @@ export default function OperationsCatalogPage({ kind }) {
         <option value="">Todos</option>{metadata.data.stock_statuses.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
       </select></div>}
       <button>Buscar</button><button type="button" onClick={() => setParams({})}>Limpiar filtros</button>
-    </form>
+    </form>}
     {editor && (kind !== 'materials' || metadata.data) && <CatalogForm materialMeta={metadata.data} key={kind + ':' + (editor.record?.id ?? 'new')} kind={kind} record={editor.record} onCancel={() => setEditor(null)}
       onSaved={() => { setEditor(null); setNotice('Registro guardado correctamente.'); resource.retry() }} />}
     {kind === 'materials' && costEditor && <MaterialCostEditor key={costEditor.id}
