@@ -27,6 +27,7 @@ class PaintFormulaResource extends JsonResource
                 'name' => $product->name,
                 'unit' => $product->unit,
                 'stock_actual' => $product->inventoryBalance?->quantity ?? '0.000000',
+                'unit_cost_mxn' => $product->unit_cost_mxn,
                 'is_active' => $product->is_active,
             ],
             'components' => $this->components->map(fn ($component): array => [
