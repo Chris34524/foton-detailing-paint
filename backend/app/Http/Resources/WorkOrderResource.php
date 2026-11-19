@@ -11,6 +11,7 @@ class WorkOrderResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
+            'process_flow_initialized' => $this->whenLoaded('processSteps', fn (): bool => $this->processSteps->isNotEmpty()),
             'id' => $this->id, 'status' => $this->status->value, 'status_label' => $this->status->label(),
             'priority' => $this->priority->value, 'priority_label' => $this->priority->label(), 'notes' => $this->notes,
             'is_terminal' => $this->status->isTerminal(),

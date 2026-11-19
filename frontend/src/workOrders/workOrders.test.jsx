@@ -7,10 +7,12 @@ import AuthProvider from '../auth/AuthProvider'
 import authService from '../auth/authService'
 import diagnosisService from '../diagnosis/diagnosisService'
 import workOrderService from './workOrderService'
+import operationsService from '../operations/operationsService'
 import { order, operator, meta, user, collection, httpError } from './workOrderFixtures'
 import { diagnosis, evidence } from '../diagnosis/diagnosisFixtures'
 
 vi.mock('../auth/authService', () => ({ default: { currentUser: vi.fn(), logout: vi.fn(), login: vi.fn() } }))
+vi.mock('../operations/operationsService', () => ({ default: { flow: vi.fn() } }))
 vi.mock('./workOrderService', () => ({ default: { list: vi.fn(), get: vi.fn(), meta: vi.fn(), operators: vi.fn(), generate: vi.fn(), update: vi.fn(), assign: vi.fn(), status: vi.fn() } }))
 vi.mock('../diagnosis/diagnosisService', () => ({ default: { get: vi.fn(), image: vi.fn(), meta: vi.fn(), types: vi.fn() } }))
 function LocationProbe() { const location = useLocation(); return <span data-testid="location">{location.pathname + location.search}</span> }
@@ -19,6 +21,7 @@ function renderApp(path = '/work-orders') {
 }
 beforeEach(() => {
   vi.resetAllMocks()
+  operationsService.flow.mockResolvedValue({ initialized: false, current: null, next: null, steps: [] })
   authService.currentUser.mockResolvedValue(user)
   workOrderService.list.mockResolvedValue(collection([order]))
   workOrderService.get.mockResolvedValue(structuredClone(order))
@@ -31,7 +34,7 @@ describe('work order navigation, listing and queue', () => {
   it('shows Trabajos navigation and keeps queue inside the module', async () => {
     renderApp()
     await screen.findByRole('heading', { name: 'Órdenes de trabajo' })
-    expect(within(screen.getByRole('navigation', { name: 'Navegación principal' })).getByRole('link', { name: 'Trabajos' })).toHaveAttribute('href', '/work-orders')
+    expect(within(screen.getByRole('navigation', { name: 'Navegación principal' })).queryByRole('link', { name: 'Trabajos' })).not.toBeInTheDocument()
     expect(within(screen.getByRole('navigation', { name: 'Navegación de trabajos' })).getByRole('link', { name: 'Cola de trabajos' })).toHaveAttribute('href', '/work-orders/queue')
   })
   it('hides navigation without view permission', async () => {
@@ -101,8 +104,11 @@ describe('work order navigation, listing and queue', () => {
     expect(workOrderService.list).toHaveBeenCalledWith({}, true, expect.anything())
     expect(within(screen.getByLabelText('Estado')).queryByRole('option', { name: 'Completada' })).not.toBeInTheDocument()
     await clicker.click(screen.getByRole('button', { name: 'Mis trabajos' }))
+    expect(screen.getByRole('button', { name: 'Mis trabajos' })).toHaveAttribute('aria-pressed', 'true')
     await waitFor(() => expect(workOrderService.list).toHaveBeenLastCalledWith({ assigned_to: '1' }, true, expect.anything()))
     await clicker.click(screen.getByRole('button', { name: 'Sin asignar' }))
+    expect(screen.getByRole('button', { name: 'Mis trabajos' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: 'Sin asignar' })).toHaveAttribute('aria-pressed', 'true')
     await waitFor(() => expect(workOrderService.list).toHaveBeenLastCalledWith({ assignment: 'unassigned' }, true, expect.anything()))
     await clicker.click(screen.getByRole('button', { name: 'Asignados' }))
     await waitFor(() => expect(workOrderService.list).toHaveBeenLastCalledWith({ assignment: 'assigned' }, true, expect.anything()))

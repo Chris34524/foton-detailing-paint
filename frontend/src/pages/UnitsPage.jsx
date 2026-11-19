@@ -118,7 +118,7 @@ export default function UnitsPage() {
     {collection && <>
       {collection.data.length === 0
         ? <div className="empty-state"><h2>No hay unidades para mostrar</h2><p>Registra una unidad o ajusta los filtros.</p></div>
-        : <div className="table-scroll"><table>
+        : <div className="table-scroll" tabIndex={0} role="region" aria-label="Tabla de registros"><table>
           <caption className="sr-only">Listado de unidades</caption>
           <thead><tr><th scope="col">VIN</th><th scope="col">Modelo</th><th scope="col">Estado</th>
             <th scope="col">Ubicación actual</th><th scope="col">Última actualización</th><th scope="col">Detalle</th></tr></thead>

@@ -30,7 +30,7 @@ class WorkOrderController extends Controller
     {
         $order->load(['diagnosis.unit', 'diagnosis.diagnosedBy', 'diagnosis.defects.defectType',
             'diagnosis.defects.createdBy', 'diagnosis.defects.evidences.uploadedBy',
-            'diagnosis.defects.evidences.defect', 'assignedTo', 'assignedBy', 'createdBy']);
+            'diagnosis.defects.evidences.defect', 'processSteps', 'assignedTo', 'assignedBy', 'createdBy']);
         $order->diagnosis->loadCount('defects');
 
         return new WorkOrderResource($order);

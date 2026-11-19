@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">FOTON Detallado y Pintura</title>
+  <rect width="64" height="64" rx="15" fill="#142B49"/>
+  <path d="M10 41h44" stroke="#69C5E9" stroke-width="2.5" stroke-linecap="round" opacity=".65"/>
+  <path d="M11 37h4l5-10h8l6-8h10l5 8h2l3 10v8h-5" fill="none" stroke="#F8FCFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M15 45h-4v-8M32 45h-8" fill="none" stroke="#F8FCFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M28 27h19" stroke="#70D0F1" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="20" cy="45" r="5.5" fill="#F8FCFF"/>
+  <circle cx="44" cy="45" r="5.5" fill="#F8FCFF"/>
+  <circle cx="20" cy="45" r="2.3" fill="#142B49"/>
+  <circle cx="44" cy="45" r="2.3" fill="#142B49"/>
+  <path d="M41 8l1.8 4.5L47.5 14l-4.7 1.6L41 20l-1.8-4.4L34.5 14l4.7-1.5z" fill="#70D0F1"/>
+</svg>

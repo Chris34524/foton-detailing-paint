@@ -9,6 +9,7 @@ import workOrderService from '../workOrders/workOrderService'
 import { workOrderPermissions } from '../workOrders/permissions'
 import WorkOrderError from '../workOrders/WorkOrderError'
 import WorkOrderActions from '../workOrders/WorkOrderActions'
+import WorkOrderOperations from '../operations/WorkOrderOperations'
 
 export default function WorkOrderDetailPage() {
   const { workOrderId } = useParams()
@@ -50,6 +51,7 @@ export default function WorkOrderDetailPage() {
     <h2>Notas de la orden</h2><p className="plain-text">{order.notes || 'Sin notas.'}</p>
     {saved && <p className="success-message" role="status">Orden actualizada.</p>}
     <WorkOrderActions key={formKey} order={order} priorities={meta.priorities} canUpdate={canUpdate} canAssign={canAssign} onSaved={reload} />
+    <WorkOrderOperations key={order.id} order={order} />
     <section aria-label="Diagnóstico fuente" className="source-diagnosis">
       <div className="section-heading"><h2>Diagnóstico fuente #{order.diagnosis.id}</h2>
         {can(diagnosisPermissions.view) && <Link to={'/diagnoses/' + order.diagnosis.id}>Ver diagnóstico</Link>}</div>

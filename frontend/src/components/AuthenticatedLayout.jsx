@@ -1,35 +1,75 @@
-import { useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import useAuth from '../auth/useAuth'
-import { workOrderPermissions } from '../workOrders/permissions'
-import { unitPermissions } from '../units/permissions'
-import { diagnosisPermissions } from '../diagnosis/permissions'
+import AppIcon from './AppIcon'
+import { roleLabels, workspaceModules, workspaceSection } from './workspaceNavigation'
 
 export default function AuthenticatedLayout() {
-  const { can, logout } = useAuth()
+  const { can, user, roles, logout } = useAuth()
+  const { pathname } = useLocation()
+  const [menuOpen, setMenuOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [error, setError] = useState('')
+  const menuButton = useRef(null)
+  const content = useRef(null)
+  const navigation = useRef(null)
+  // Only the existing local developer super-administrator sees the full workspace.
+  // Backend Policies and permissions continue to guard every route and mutation.
+  const developerFullNavigation = user?.email?.trim().toLowerCase() === 'developer@foton-detailing.local'
+    && roles.includes('super_admin')
+  const visibleModules = workspaceModules.filter((module) => can(module.permission)
+    && (developerFullNavigation || module.to === '/materials'))
+  const section = workspaceSection(pathname)
+  useEffect(() => { document.title = section + ' · FOTON' }, [section])
+  useEffect(() => { if (menuOpen) navigation.current?.querySelector('a')?.focus() }, [menuOpen])
   async function handleLogout() {
-    setIsLoggingOut(true)
-    setError('')
+    setIsLoggingOut(true); setError('')
     try { await logout() }
     catch { setError('No fue posible cerrar la sesión. Revisa la conexión e intenta de nuevo.') }
     finally { setIsLoggingOut(false) }
   }
-  return <main className="dashboard-layout">
-    <header className="dashboard-header">
-      <p className="brand">FOTON <span>Detailing &amp; Paint</span></p>
+  function closeMenu(focusContent = false) {
+    setMenuOpen(false)
+    if (focusContent) content.current?.focus()
+  }
+  return <div className="app-shell" data-menu-open={menuOpen} onKeyDown={(event) => {
+    if (event.key === 'Escape' && menuOpen) { closeMenu(); menuButton.current?.focus() }
+  }}>
+    <a className="skip-link" href="#workspace-content" onClick={() => closeMenu()}>Saltar al contenido</a>
+    <aside className="app-sidebar" id="workspace-navigation" ref={navigation}>
+      <div className="sidebar-brand"><span className="brand-mark" aria-hidden="true">F</span><p className="brand">FOTON <span>Detailing &amp; Paint</span></p></div>
       <nav aria-label="Navegación principal">
-        <NavLink to="/dashboard">Dashboard</NavLink>
-        {can(unitPermissions.view) && <NavLink to="/units">Unidades</NavLink>}
-        {can(workOrderPermissions.view) && <NavLink to="/work-orders">Trabajos</NavLink>}
-        {can(diagnosisPermissions.view) && <NavLink to="/diagnoses">Diagnóstico</NavLink>}
+        {developerFullNavigation && <NavLink to="/dashboard" onClick={() => closeMenu(true)}><AppIcon name="dashboard" /><span>Dashboard</span></NavLink>}
+        {['Operación', 'Recursos y calidad'].map((group) => visibleModules.some((module) => module.group === group) && <div className="navigation-group" key={group}>
+          <p className="navigation-label">{group}</p>
+          {visibleModules.filter((module) => module.group === group).map((module) => <Link key={module.to} to={module.to} aria-current={section === module.label ? "page" : undefined}
+            className={section === module.label ? 'active' : undefined} onClick={() => closeMenu(true)}>
+            <AppIcon name={module.icon} /><span>{module.label}</span>
+          </Link>)}
+        </div>)}
       </nav>
-      <button onClick={handleLogout} disabled={isLoggingOut}>
-        {isLoggingOut ? 'Cerrando sesión…' : 'Cerrar sesión'}
-      </button>
-    </header>
-    {error && <p className="error" role="alert">{error}</p>}
-    <Outlet />
-  </main>
+      <div className="sidebar-account">
+        <div className="account-identity"><span className="account-avatar" aria-hidden="true">{user.name.slice(0, 1).toUpperCase()}</span>
+          <div><span className="account-role">{roles.length ? roles.map((role) => roleLabels[role] || role).join(' · ') : 'Cuenta de usuario'}</span>
+            <span className="account-email" title={user.email}>{user.email}</span></div></div>
+        <button className="logout-button" onClick={handleLogout} disabled={isLoggingOut}><AppIcon name="logout" />
+          {isLoggingOut ? 'Cerrando sesión…' : 'Cerrar sesión'}</button>
+      </div>
+    </aside>
+    {menuOpen && <button className="navigation-backdrop" aria-label="Cerrar navegación" onClick={() => { closeMenu(); menuButton.current?.focus() }} />}
+    <div className="app-main">
+      <header className="app-topbar">
+        <button className="menu-toggle" ref={menuButton} aria-expanded={menuOpen} aria-controls="workspace-navigation" aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'} onClick={() => setMenuOpen((open) => !open)}>
+          <AppIcon name={menuOpen ? 'close' : 'menu'} />
+        </button>
+        <div className="workspace-context"><span>Espacio de trabajo</span><strong>{section}</strong></div>
+        <span className="topbar-product">Detallado y pintura</span>
+      </header>
+      <main id="workspace-content" className="workspace-content" ref={content} tabIndex={-1}>
+        {error && <p className="error" role="alert">{error}</p>}
+        <Outlet />
+      </main>
+      <footer className="app-footer"><span>FOTON · Detailing &amp; Paint</span><span>Control de operación</span></footer>
+    </div>
+  </div>
 }

@@ -56,7 +56,7 @@ export default function DiagnosesPage() {
     {data && <>
       {data.collection.data.length === 0
         ? <div className="empty-state"><h2>No hay diagnósticos para mostrar</h2><p>Selecciona una unidad para registrar un diagnóstico o ajusta la búsqueda.</p></div>
-        : <div className="table-scroll"><table>
+        : <div className="table-scroll" tabIndex={0} role="region" aria-label="Tabla de registros"><table>
           <caption className="sr-only">Listado de diagnósticos</caption>
           <thead><tr><th>VIN</th><th>Modelo</th><th>Fecha de diagnóstico</th><th>Diagnosticado por</th><th>Defectos</th><th>Detalle</th></tr></thead>
           <tbody>{data.collection.data.map((diagnosis) => <tr key={diagnosis.id}>
